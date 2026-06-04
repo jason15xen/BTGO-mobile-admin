@@ -1,13 +1,15 @@
+import type { IconType } from "react-icons";
+import { LuTrees, LuDroplet, LuWaves } from "react-icons/lu";
 import type { Ecosystem, Rarity } from "./types";
 
 // Per-ecosystem accents — emerald / teal / lime for a rich but cohesive look.
 export const ECO_THEME: Record<
   Ecosystem,
-  { name: string; emoji: string; gradient: string; chip: string; text: string; ring: string; solid: string }
+  { name: string; Icon: IconType; gradient: string; chip: string; text: string; ring: string; solid: string }
 > = {
   terrestrial: {
     name: "陸域",
-    emoji: "🌿",
+    Icon: LuTrees,
     gradient: "from-forest-500 to-forest-700",
     chip: "bg-forest-100 text-forest-700",
     text: "text-forest-600",
@@ -16,7 +18,7 @@ export const ECO_THEME: Record<
   },
   freshwater: {
     name: "淡水域",
-    emoji: "💧",
+    Icon: LuDroplet,
     gradient: "from-teal-500 to-teal-700",
     chip: "bg-teal-100 text-teal-700",
     text: "text-teal-600",
@@ -25,7 +27,7 @@ export const ECO_THEME: Record<
   },
   marine: {
     name: "海域",
-    emoji: "🌊",
+    Icon: LuWaves,
     gradient: "from-lime-500 to-teal-600",
     chip: "bg-lime-100 text-lime-600",
     text: "text-lime-600",

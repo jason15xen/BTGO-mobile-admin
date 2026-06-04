@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { LuLeaf } from "react-icons/lu";
 
 const REGIONS = [
   "富士市",
@@ -50,7 +51,7 @@ export default function RegisterClient() {
     <div className="min-h-full bg-gradient-to-b from-forest-700 to-forest-600 flex items-center justify-center px-4 py-10">
       <div className="w-full max-w-md">
         <div className="text-center text-white mb-6">
-          <div className="text-4xl">🌿</div>
+          <LuLeaf size={40} className="mx-auto" />
           <h1 className="text-2xl font-bold mt-2">BTGO へようこそ</h1>
           <p className="text-sm text-forest-100 mt-1">富士の自然を探索する仲間に加わろう</p>
         </div>

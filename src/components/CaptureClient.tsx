@@ -9,6 +9,9 @@ import { rewardFor } from "@/lib/game";
 import type { Species } from "@/lib/types";
 import Pyramid from "@/components/Pyramid";
 import SpeciesImage from "@/components/SpeciesImage";
+import type { IconType } from "react-icons";
+import { FiX, FiZap, FiImage, FiCamera, FiMapPin, FiTag, FiBarChart2, FiAlertTriangle, FiBookOpen } from "react-icons/fi";
+import { LuUtensils, LuPartyPopper } from "react-icons/lu";
 
 type Phase = "camera" | "analyzing" | "result" | "saving" | "reflection";
 
@@ -163,8 +166,8 @@ export default function CaptureClient() {
     return (
       <div className="min-h-full flex flex-col bg-black text-white">
         <header className="flex items-center justify-between px-5 py-3 z-10">
-          <button onClick={() => router.push("/")} aria-label="閉じる" className="text-2xl">
-            ✕
+          <button onClick={() => router.push("/")} aria-label="閉じる">
+            <FiX size={24} />
           </button>
           <span className="font-semibold">いきもの撮影</span>
           <span className="w-6" />
@@ -180,13 +183,13 @@ export default function CaptureClient() {
             />
           ) : (
             <div className="absolute inset-0 flex flex-col items-center justify-center text-center px-6 gap-3">
-              <span className="text-5xl">📷</span>
+              <FiCamera size={44} className="text-white/80" />
               <p className="text-sm text-white/80">{camReason}</p>
               <button
                 onClick={() => fileRef.current?.click()}
-                className="mt-1 bg-white text-black font-bold rounded-full px-6 py-3"
+                className="mt-1 bg-white text-black font-bold rounded-full px-6 py-3 flex items-center gap-2"
               >
-                📸 写真を撮る / 選ぶ
+                <FiCamera size={18} /> 写真を撮る / 選ぶ
               </button>
               <button onClick={() => setAttempt((a) => a + 1)} className="text-xs text-white/70 underline">
                 カメラをもう一度試す
@@ -216,7 +219,7 @@ export default function CaptureClient() {
             onClick={() => fileRef.current?.click()}
             className="text-xs text-white/80 flex flex-col items-center gap-1"
           >
-            🖼️<span>アルバム</span>
+            <FiImage size={20} /><span>アルバム</span>
           </button>
           <button
             onClick={takeFrame}
@@ -285,7 +288,7 @@ export default function CaptureClient() {
           )}
           <div className="absolute bottom-4 left-5 text-white">
             <div className="text-xs opacity-90 flex items-center gap-2">
-              <span className={`px-2 py-0.5 rounded-full text-[11px] font-semibold ${theme.chip}`}>{theme.emoji} {theme.name}</span>
+              <span className={`px-2 py-0.5 rounded-full text-[11px] font-semibold inline-flex items-center gap-1 ${theme.chip}`}><theme.Icon size={11} /> {theme.name}</span>
               AIが判定しました
             </div>
             <h1 className="text-3xl font-bold mt-1 drop-shadow">{subject.nameJa}</h1>
@@ -302,7 +305,7 @@ export default function CaptureClient() {
             {subject.invasive && (
               <>
                 <div className="w-px h-8 bg-neutral-100" />
-                <Reward label="外来種報告" value="⚠" cls="text-coral-500" />
+                <Reward label="外来種報告" value={<FiAlertTriangle className="mx-auto" size={20} />} cls="text-coral-500" />
               </>
             )}
           </div>
@@ -315,10 +318,10 @@ export default function CaptureClient() {
             </h2>
             <p className="text-sm text-neutral-600 leading-relaxed">{info?.description}</p>
             <div className="grid grid-cols-2 gap-3 pt-1">
-              <Info icon="🗺️" label="生息地" value={info?.habitat ?? "—"} />
-              <Info icon="🍽️" label="主な食べ物" value={info?.diet ?? "—"} />
-              <Info icon="🏷️" label="分類" value={subject.category} />
-              <Info icon="📊" label="栄養段階" value={`レベル ${subject.trophicLevel} / 4`} />
+              <Info Icon={FiMapPin} label="生息地" value={info?.habitat ?? "—"} />
+              <Info Icon={LuUtensils} label="主な食べ物" value={info?.diet ?? "—"} />
+              <Info Icon={FiTag} label="分類" value={subject.category} />
+              <Info Icon={FiBarChart2} label="栄養段階" value={`レベル ${subject.trophicLevel} / 4`} />
             </div>
           </div>
 
@@ -327,7 +330,11 @@ export default function CaptureClient() {
             disabled={phase === "saving"}
             className={`w-full bg-gradient-to-r ${theme.gradient} disabled:opacity-60 text-white font-bold rounded-2xl py-4 shadow-glow transition-opacity`}
           >
-            {phase === "saving" ? "登録中…" : "📖 図鑑に登録する"}
+            {phase === "saving" ? (
+              "登録中…"
+            ) : (
+              <span className="flex items-center justify-center gap-2"><FiBookOpen size={18} /> 図鑑に登録する</span>
+            )}
           </button>
           <button
             onClick={() => { setSubject(null); setShot(null); setPhase("camera"); }}
@@ -344,7 +351,7 @@ export default function CaptureClient() {
   return (
     <div className="min-h-full bg-neutral-50 pb-6">
       <div className={`bg-gradient-to-r ${theme.gradient} text-white px-5 pt-6 pb-8 text-center`}>
-        <div className="text-3xl">🎉</div>
+        <LuPartyPopper size={30} className="mx-auto" />
         <h1 className="font-bold text-lg mt-1">ピラミッドに反映されました！</h1>
         <p className="text-xs opacity-90 mt-1">あなたの発見が生態系のつながりを強化しました</p>
       </div>
@@ -380,7 +387,7 @@ export default function CaptureClient() {
   );
 }
 
-function Reward({ label, value, cls }: { label: string; value: string; cls: string }) {
+function Reward({ label, value, cls }: { label: string; value: React.ReactNode; cls: string }) {
   return (
     <div className="text-center">
       <div className={`text-xl font-extrabold ${cls}`}>{value}</div>
@@ -389,10 +396,10 @@ function Reward({ label, value, cls }: { label: string; value: string; cls: stri
   );
 }
 
-function Info({ icon, label, value }: { icon: string; label: string; value: string }) {
+function Info({ Icon, label, value }: { Icon: IconType; label: string; value: string }) {
   return (
     <div className="bg-neutral-50 rounded-xl p-3">
-      <div className="text-[11px] text-neutral-400">{icon} {label}</div>
+      <div className="text-[11px] text-neutral-400 flex items-center gap-1"><Icon size={12} /> {label}</div>
       <div className="text-sm font-semibold text-neutral-700 mt-0.5">{value}</div>
     </div>
   );

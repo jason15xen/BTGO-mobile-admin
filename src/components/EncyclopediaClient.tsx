@@ -6,6 +6,7 @@ import type { Species } from "@/lib/types";
 import SpeciesImage from "@/components/SpeciesImage";
 import { RARITY_THEME } from "@/lib/theme";
 import { PageHero, Screen, Card } from "@/components/ui";
+import { FiAlertTriangle } from "react-icons/fi";
 
 type Filter = "all" | "terrestrial" | "freshwater" | "marine";
 
@@ -129,7 +130,7 @@ export default function EncyclopediaClient({ counts }: { counts: Record<string, 
                 <Field label="観察回数" value={`${counts[selected.id]} 回`} />
               </dl>
               {selected.invasive && (
-                <div className="mt-3 text-sm text-coral-600 bg-coral-100 rounded-lg px-3 py-2">⚠ 外来種 — 発見時は報告にご協力ください</div>
+                <div className="mt-3 text-sm text-coral-600 bg-coral-100 rounded-lg px-3 py-2 flex items-center gap-2"><FiAlertTriangle size={15} /> 外来種 — 発見時は報告にご協力ください</div>
               )}
               <button onClick={() => setSelected(null)} className="w-full mt-5 bg-neutral-800 hover:bg-neutral-900 text-white font-bold rounded-xl py-3 transition-colors">
                 閉じる

@@ -1,21 +1,24 @@
 "use client";
 
 import { useState } from "react";
+import type { IconType } from "react-icons";
+import { FiCamera, FiUser } from "react-icons/fi";
+import { LuCoffee, LuLeaf, LuBike, LuShoppingBag, LuFootprints, LuBird } from "react-icons/lu";
 import type { UserStats } from "@/lib/game";
 import SpeciesImage from "@/components/SpeciesImage";
 import { PageHero, Screen } from "@/components/ui";
 
-const COUPONS = [
-  { name: "グリーンカフェ富士", offer: "ドリンク10%OFF", cost: 150, emoji: "☕" },
-  { name: "自然堂", offer: "全品15%OFF", cost: 200, emoji: "🌱" },
-  { name: "エコライド富士", offer: "レンタカー無料1日", cost: 300, emoji: "🚲" },
-  { name: "富士の里直売所", offer: "全品5%OFF", cost: 100, emoji: "🍙" },
+const COUPONS: { name: string; offer: string; cost: number; Icon: IconType }[] = [
+  { name: "グリーンカフェ富士", offer: "ドリンク10%OFF", cost: 150, Icon: LuCoffee },
+  { name: "自然堂", offer: "全品15%OFF", cost: 200, Icon: LuLeaf },
+  { name: "エコライド富士", offer: "レンタカー無料1日", cost: 300, Icon: LuBike },
+  { name: "富士の里直売所", offer: "全品5%OFF", cost: 100, Icon: LuShoppingBag },
 ];
 
-const BADGES = [
-  { name: "はじめの一歩", emoji: "🥾", color: "bg-forest-100" },
-  { name: "バードウォッチャー", emoji: "🐦", color: "bg-sky-100" },
-  { name: "自然愛好家", emoji: "📷", color: "bg-amber-100" },
+const BADGES: { name: string; Icon: IconType; color: string; text: string }[] = [
+  { name: "はじめの一歩", Icon: LuFootprints, color: "bg-forest-100", text: "text-forest-600" },
+  { name: "バードウォッチャー", Icon: LuBird, color: "bg-teal-100", text: "text-teal-600" },
+  { name: "自然愛好家", Icon: FiCamera, color: "bg-gold-100", text: "text-gold-600" },
 ];
 
 interface Recent {
@@ -68,8 +71,8 @@ export default function RewardsClient({ stats, recent }: { stats: UserStats; rec
                 key={c.name}
                 className="bg-white rounded-2xl border border-forest-100 p-4 flex items-center gap-3"
               >
-                <span className="w-12 h-12 rounded-xl bg-forest-50 flex items-center justify-center text-2xl">
-                  {c.emoji}
+                <span className="w-12 h-12 rounded-xl bg-forest-50 text-forest-600 flex items-center justify-center">
+                  <c.Icon size={22} />
                 </span>
                 <div className="flex-1 min-w-0">
                   <div className="font-semibold text-forest-800 text-sm">{c.name}</div>
@@ -93,8 +96,8 @@ export default function RewardsClient({ stats, recent }: { stats: UserStats; rec
         <div className="space-y-5">
           {/* Profile card */}
           <div className="bg-white rounded-3xl border border-forest-100 p-5 text-center">
-            <div className="w-20 h-20 mx-auto rounded-full bg-forest-100 flex items-center justify-center text-4xl">
-              🧑‍🌾
+            <div className="w-20 h-20 mx-auto rounded-full bg-forest-100 text-forest-600 flex items-center justify-center">
+              <FiUser size={38} />
             </div>
             <div className="mt-2 font-bold text-forest-800">{stats.title}</div>
             <div className="text-xs text-forest-400">Lv.{stats.level}</div>
@@ -121,10 +124,10 @@ export default function RewardsClient({ stats, recent }: { stats: UserStats; rec
             <div className="flex gap-3">
               {BADGES.map((b) => (
                 <div key={b.name} className="flex flex-col items-center gap-1 w-20">
-                  <span className={`w-14 h-14 rounded-full ${b.color} flex items-center justify-center text-2xl`}>
-                    {b.emoji}
+                  <span className={`w-14 h-14 rounded-full ${b.color} ${b.text} flex items-center justify-center`}>
+                    <b.Icon size={24} />
                   </span>
-                  <span className="text-[10px] text-forest-500 text-center leading-tight">{b.name}</span>
+                  <span className="text-[10px] text-neutral-500 text-center leading-tight">{b.name}</span>
                 </div>
               ))}
             </div>

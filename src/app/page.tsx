@@ -1,5 +1,7 @@
 import Link from "next/link";
+import type { IconType } from "react-icons";
 import { FiCamera } from "react-icons/fi";
+import { LuTrees, LuDroplet, LuWaves, LuSparkles } from "react-icons/lu";
 import SpeciesImage from "@/components/SpeciesImage";
 import UserGreeting from "@/components/UserGreeting";
 import { readObservations } from "@/lib/dataStore";
@@ -9,10 +11,10 @@ import type { Ecosystem } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
 
-const ECOS: { key: Ecosystem; label: string; emoji: string; bar: string; text: string }[] = [
-  { key: "terrestrial", label: "陸域", emoji: "🌿", bar: "bg-forest-500", text: "text-forest-600" },
-  { key: "freshwater", label: "淡水域", emoji: "💧", bar: "bg-teal-500", text: "text-teal-600" },
-  { key: "marine", label: "海域", emoji: "🌊", bar: "bg-lime-500", text: "text-lime-600" },
+const ECOS: { key: Ecosystem; label: string; Icon: IconType; bar: string; text: string }[] = [
+  { key: "terrestrial", label: "陸域", Icon: LuTrees, bar: "bg-forest-500", text: "text-forest-600" },
+  { key: "freshwater", label: "淡水域", Icon: LuDroplet, bar: "bg-teal-500", text: "text-teal-600" },
+  { key: "marine", label: "海域", Icon: LuWaves, bar: "bg-lime-500", text: "text-lime-600" },
 ];
 
 export default async function HomePage() {
@@ -83,7 +85,7 @@ export default async function HomePage() {
               const pct = Math.round(((discoveredByEco.get(e.key)?.size ?? 0) / (totalByEco.get(e.key) ?? 1)) * 100);
               return (
                 <div key={e.key} className="flex items-center gap-3">
-                  <span className="w-20 text-sm text-neutral-500">{e.emoji} {e.label}</span>
+                  <span className="w-20 text-sm text-neutral-500 flex items-center gap-1.5"><e.Icon className={e.text} size={15} /> {e.label}</span>
                   <div className="flex-1 h-2 bg-neutral-100 rounded-full overflow-hidden">
                     <div className={`h-full rounded-full ${e.bar}`} style={{ width: `${pct}%` }} />
                   </div>
@@ -98,7 +100,7 @@ export default async function HomePage() {
         <section className="relative overflow-hidden bg-gradient-to-r from-gold-400 to-gold-500 rounded-3xl shadow-soft p-4 flex items-center gap-4 text-white">
           <SpeciesImage speciesId={rare.id} emoji={rare.emoji} alt={rare.nameJa} className="w-16 h-16" rounded="rounded-2xl ring-2 ring-white/50" />
           <div className="flex-1">
-            <div className="text-[11px] font-bold text-white/90">✦ レアアラート</div>
+            <div className="text-[11px] font-bold text-white/90 flex items-center gap-1"><LuSparkles size={12} /> レアアラート</div>
             <div className="text-[17px] font-bold leading-tight mt-0.5">{rare.nameJa}</div>
             <div className="text-xs text-white/85">が近くに出現中</div>
           </div>
