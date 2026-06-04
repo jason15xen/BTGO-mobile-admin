@@ -47,7 +47,7 @@ export default function RewardsClient({ stats, recent }: { stats: UserStats; rec
       />
       <Screen>
         {/* Tabs */}
-        <div className="relative z-10 flex gap-2 bg-white rounded-2xl p-1 border border-neutral-100 shadow-soft -mt-9">
+        <div className="relative z-10 flex gap-2 float3d rounded-2xl p-1 -mt-9">
           <button
             onClick={() => setTab("coupons")}
             className={`flex-1 py-2 rounded-xl text-sm font-semibold ${tab === "coupons" ? "bg-forest-600 text-white" : "text-neutral-500"}`}
@@ -69,7 +69,7 @@ export default function RewardsClient({ stats, recent }: { stats: UserStats; rec
             return (
               <div
                 key={c.name}
-                className="bg-white rounded-2xl border border-forest-100 p-4 flex items-center gap-3"
+                className="card3d rounded-2xl p-4 flex items-center gap-3"
               >
                 <span className="w-12 h-12 rounded-xl bg-forest-50 text-forest-600 flex items-center justify-center">
                   <c.Icon size={22} />
@@ -80,10 +80,10 @@ export default function RewardsClient({ stats, recent }: { stats: UserStats; rec
                 </div>
                 <button
                   disabled={!affordable}
-                  className={`text-sm font-bold rounded-full px-4 py-2 ${
+                  className={`text-sm font-bold rounded-full px-4 py-2 border-[1.5px] btn3d ${
                     affordable
-                      ? "bg-gold-400 text-forest-900 hover:bg-gold-500"
-                      : "bg-forest-100 text-forest-300"
+                      ? "bg-gold-400 text-forest-900 border-gold-600/50 hover:bg-gold-500"
+                      : "bg-neutral-100 text-neutral-400 border-neutral-200"
                   }`}
                 >
                   {c.cost}pt
@@ -95,7 +95,7 @@ export default function RewardsClient({ stats, recent }: { stats: UserStats; rec
       ) : (
         <div className="space-y-5">
           {/* Profile card */}
-          <div className="bg-white rounded-3xl border border-forest-100 p-5 text-center">
+          <div className="card3d rounded-3xl p-5 text-center">
             <div className="w-20 h-20 mx-auto rounded-full bg-forest-100 text-forest-600 flex items-center justify-center">
               <FiUser size={38} />
             </div>
@@ -143,7 +143,7 @@ export default function RewardsClient({ stats, recent }: { stats: UserStats; rec
               {recent.map((r, i) => (
                 <div
                   key={i}
-                  className="bg-white rounded-2xl border border-forest-100 p-3 flex items-center gap-3"
+                  className="card3d rounded-2xl p-3 flex items-center gap-3"
                 >
                   <SpeciesImage speciesId={r.id} emoji={r.emoji} alt={r.name} className="w-10 h-10" rounded="rounded-full" />
                   <div className="flex-1">
@@ -164,7 +164,7 @@ export default function RewardsClient({ stats, recent }: { stats: UserStats; rec
 
 function Stat({ label, value }: { label: string; value: number }) {
   return (
-    <div className="bg-forest-50 rounded-xl py-2">
+    <div className="bg-forest-50 rounded-xl py-2 tile3d">
       <div className="text-lg font-extrabold text-forest-700">{value.toLocaleString()}</div>
       <div className="text-[10px] text-forest-400">{label}</div>
     </div>

@@ -20,8 +20,9 @@ export function PageHero({
   right?: ReactNode;
 }) {
   return (
-    <div className={`relative bg-gradient-to-br ${gradient} px-5 pt-7 pb-14 overflow-hidden`}>
-      <div className="absolute -top-10 -right-8 w-44 h-44 rounded-full bg-white/10 blur-2xl pointer-events-none" />
+    <div className={`relative bg-gradient-to-br ${gradient} px-5 pt-7 pb-14 overflow-hidden shadow-[inset_0_-16px_24px_-16px_rgba(0,0,0,0.28)]`}>
+      <div className="absolute inset-x-0 top-0 h-px bg-white/25 pointer-events-none" />
+      <div className="absolute -top-10 -right-8 w-44 h-44 rounded-full bg-white/15 blur-2xl pointer-events-none" />
       <div className="relative flex items-end justify-between gap-3 text-white">
         <div>
           <h1 className="text-[28px] leading-none font-bold tracking-tight">{title}</h1>
@@ -33,11 +34,7 @@ export function PageHero({
   );
 }
 
-/** White surface card. */
+/** Raised white surface card. */
 export function Card({ children, className = "" }: { children: ReactNode; className?: string }) {
-  return (
-    <div className={`bg-white rounded-3xl border border-neutral-200/60 shadow-soft p-5 ${className}`}>
-      {children}
-    </div>
-  );
+  return <div className={`card3d rounded-3xl p-5 ${className}`}>{children}</div>;
 }

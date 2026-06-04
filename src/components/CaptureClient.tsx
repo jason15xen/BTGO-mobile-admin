@@ -298,7 +298,7 @@ export default function CaptureClient() {
 
         <div className="px-5 -mt-4 relative space-y-4">
           {/* reward */}
-          <div className="bg-white rounded-2xl shadow-soft p-4 flex items-center justify-around">
+          <div className="card3d rounded-2xl p-4 flex items-center justify-around">
             <Reward label="経験値" value={`+${rw.xp}`} cls="text-forest-600" />
             <div className="w-px h-8 bg-neutral-100" />
             <Reward label="ポイント" value={`+${rw.points}`} cls="text-gold-500" />
@@ -311,7 +311,7 @@ export default function CaptureClient() {
           </div>
 
           {/* specific information */}
-          <div className="bg-white rounded-2xl shadow-soft p-5 space-y-3">
+          <div className="card3d rounded-2xl p-5 space-y-3">
             <h2 className="font-bold text-neutral-800 flex items-center gap-2">
               <span className={`w-1.5 h-4 rounded-full ${theme.solid}`} />
               この生き物について
@@ -328,7 +328,7 @@ export default function CaptureClient() {
           <button
             onClick={register}
             disabled={phase === "saving"}
-            className={`w-full bg-gradient-to-r ${theme.gradient} disabled:opacity-60 text-white font-bold rounded-2xl py-4 shadow-glow transition-opacity`}
+            className={`w-full bg-gradient-to-r ${theme.gradient} disabled:opacity-60 text-white font-bold rounded-2xl py-4 border-[1.5px] border-white/25 btn3d`}
           >
             {phase === "saving" ? (
               "登録中…"
@@ -357,7 +357,7 @@ export default function CaptureClient() {
       </div>
 
       <div className="px-5 -mt-4 space-y-4">
-        <div className="bg-white rounded-2xl shadow-soft p-4">
+        <div className="card3d rounded-2xl p-4">
           <div className="flex items-center gap-3 mb-3">
             <SpeciesImage speciesId={subject.id} emoji={subject.emoji} alt={subject.nameJa} className="w-12 h-12" rounded="rounded-full ring-2 ring-gold-400" />
             <div>
@@ -375,10 +375,10 @@ export default function CaptureClient() {
         </div>
 
         <div className="grid grid-cols-2 gap-3">
-          <button onClick={() => router.push("/encyclopedia")} className="bg-white border border-neutral-200 text-neutral-700 font-semibold rounded-2xl py-3.5">
+          <button onClick={() => router.push("/encyclopedia")} className="bg-white border-[1.5px] border-neutral-200 text-neutral-700 font-semibold rounded-2xl py-3.5">
             図鑑で確認
           </button>
-          <button onClick={() => { router.push("/"); router.refresh(); }} className={`bg-gradient-to-r ${theme.gradient} text-white font-bold rounded-2xl py-3.5`}>
+          <button onClick={() => { router.push("/"); router.refresh(); }} className={`bg-gradient-to-r ${theme.gradient} text-white font-bold rounded-2xl py-3.5 border-[1.5px] border-white/25 btn3d`}>
             ホームに戻る
           </button>
         </div>
@@ -398,7 +398,7 @@ function Reward({ label, value, cls }: { label: string; value: React.ReactNode; 
 
 function Info({ Icon, label, value }: { Icon: IconType; label: string; value: string }) {
   return (
-    <div className="bg-neutral-50 rounded-xl p-3">
+    <div className="bg-neutral-50 rounded-xl p-3 well3d">
       <div className="text-[11px] text-neutral-400 flex items-center gap-1"><Icon size={12} /> {label}</div>
       <div className="text-sm font-semibold text-neutral-700 mt-0.5">{value}</div>
     </div>
@@ -407,7 +407,7 @@ function Info({ Icon, label, value }: { Icon: IconType; label: string; value: st
 
 function Stat({ label, value }: { label: string; value: string }) {
   return (
-    <div className="bg-white rounded-2xl shadow-soft p-3 text-center">
+    <div className="card3d rounded-2xl p-3 text-center">
       <div className="text-lg font-extrabold text-forest-700">{value}</div>
       <div className="text-[10px] text-neutral-400 mt-0.5">{label}</div>
     </div>

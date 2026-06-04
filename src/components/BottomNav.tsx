@@ -20,7 +20,7 @@ export default function BottomNav() {
   if (HIDE_ON.includes(pathname)) return null;
 
   return (
-    <nav className="shrink-0 relative z-10 bg-white border-t border-neutral-100 h-[68px] flex items-center justify-around px-1 pb-[env(safe-area-inset-bottom)]">
+    <nav className="shrink-0 relative z-10 bg-white border-t border-neutral-200/70 h-[68px] flex items-center justify-around px-1 pb-[env(safe-area-inset-bottom)] shadow-[0_-8px_20px_-10px_rgba(16,28,22,0.18)]">
       {TABS.slice(0, 2).map((t) => (
         <TabItem key={t.href} {...t} active={pathname === t.href} />
       ))}

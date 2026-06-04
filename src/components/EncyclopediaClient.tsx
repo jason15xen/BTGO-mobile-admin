@@ -33,7 +33,7 @@ export default function EncyclopediaClient({ counts }: { counts: Record<string, 
       <PageHero title="図鑑" subtitle="発見した生き物のコレクション" gradient="from-teal-500 to-forest-700" />
       <Screen>
         {/* progress */}
-        <Card className="-mt-9 relative z-10">
+        <Card className="-mt-9 relative z-10 float3d">
           <div className="flex items-end justify-between">
             <div>
               <div className="text-sm text-neutral-500">コレクション進捗</div>
@@ -44,7 +44,7 @@ export default function EncyclopediaClient({ counts }: { counts: Record<string, 
             </div>
             <div className="text-3xl font-extrabold text-aqua-600">{pct}%</div>
           </div>
-          <div className="h-2.5 mt-3 bg-neutral-100 rounded-full overflow-hidden">
+          <div className="h-2.5 mt-3 bg-neutral-100 rounded-full overflow-hidden well3d">
             <div className="h-full bg-gradient-to-r from-aqua-400 to-ocean-500 rounded-full transition-all" style={{ width: `${pct}%` }} />
           </div>
         </Card>
@@ -56,7 +56,7 @@ export default function EncyclopediaClient({ counts }: { counts: Record<string, 
               key={f.key}
               onClick={() => setFilter(f.key)}
               className={`px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap transition-colors ${
-                filter === f.key ? "bg-aqua-600 text-white shadow" : "bg-white text-neutral-500 border border-neutral-200"
+                filter === f.key ? "bg-aqua-600 text-white shadow" : "bg-white text-neutral-500 border-[1.5px] border-neutral-200"
               }`}
             >
               {f.label}
@@ -73,36 +73,39 @@ export default function EncyclopediaClient({ counts }: { counts: Record<string, 
                 key={s.id}
                 onClick={() => found && setSelected(s)}
                 className={`text-left rounded-2xl overflow-hidden border transition-all ${
-                  found ? "bg-white border-neutral-100 shadow-soft active:scale-[0.98]" : "bg-neutral-100/60 border-dashed border-neutral-200"
+                  found
+                    ? "bg-white border-neutral-200 shadow-[0_14px_26px_-10px_rgba(16,28,22,0.5)] active:translate-y-0.5 active:shadow-[0_6px_12px_-8px_rgba(16,28,22,0.5)]"
+                    : "bg-neutral-100/60 border-dashed border-neutral-300 shadow-[inset_0_2px_6px_rgba(16,28,22,0.12)]"
                 }`}
               >
-                <div className="relative aspect-square">
-                  {found ? (
-                    <>
-                      <SpeciesImage speciesId={s.id} emoji={s.emoji} alt={s.nameJa} className="w-full h-full" />
-                      <span className={`absolute top-2 left-2 text-[10px] font-bold px-2 py-0.5 rounded-full shadow ${rarityBadge(s.rarity)}`}>
+                {found ? (
+                  <>
+                    <div className="relative p-2.5 pb-0">
+                      <div className="relative aspect-square rounded-2xl overflow-hidden bg-neutral-100 well3d">
+                        <SpeciesImage speciesId={s.id} emoji={s.emoji} alt={s.nameJa} className="w-full h-full" />
+                      </div>
+                      <span className={`absolute top-4 left-4 text-[10px] font-bold px-2 py-0.5 rounded-full shadow ${rarityBadge(s.rarity)}`}>
                         {RARITY_LABEL[s.rarity]}
                       </span>
                       {s.invasive && (
-                        <span className="absolute top-2 right-2 text-[10px] font-bold px-2 py-0.5 rounded-full bg-coral-500 text-white shadow">
+                        <span className="absolute top-4 right-4 text-[10px] font-bold px-2 py-0.5 rounded-full bg-coral-500 text-white shadow">
                           外来種
                         </span>
                       )}
-                    </>
-                  ) : (
-                    <div className="w-full h-full flex items-center justify-center text-neutral-300 text-3xl">？？？</div>
-                  )}
-                </div>
-                {found ? (
-                  <div className="p-3">
-                    <div className="font-semibold text-neutral-800 text-sm truncate">{s.nameJa}</div>
-                    <div className="flex items-center justify-between mt-0.5">
-                      <span className="text-[11px] text-neutral-400 truncate">{s.category}</span>
-                      <span className="text-[11px] text-neutral-400">×{counts[s.id]}</span>
                     </div>
-                  </div>
+                    <div className="p-3">
+                      <div className="font-semibold text-neutral-800 text-sm truncate">{s.nameJa}</div>
+                      <div className="flex items-center justify-between mt-0.5">
+                        <span className="text-[11px] text-neutral-400 truncate">{s.category}</span>
+                        <span className="text-[11px] text-neutral-400">×{counts[s.id]}</span>
+                      </div>
+                    </div>
+                  </>
                 ) : (
-                  <div className="p-3 text-sm text-neutral-300 font-medium">未発見</div>
+                  <div className="p-2.5">
+                    <div className="aspect-square rounded-2xl flex items-center justify-center text-neutral-300 text-3xl bg-neutral-200/40 well3d">？？？</div>
+                    <div className="pt-2 text-sm text-neutral-300 font-medium">未発見</div>
+                  </div>
                 )}
               </button>
             );
@@ -113,8 +116,8 @@ export default function EncyclopediaClient({ counts }: { counts: Record<string, 
       {/* detail modal */}
       {selected && (
         <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4" onClick={() => setSelected(null)}>
-          <div className="w-full max-w-md bg-white rounded-3xl overflow-hidden shadow-2xl" onClick={(e) => e.stopPropagation()}>
-            <div className="relative h-56">
+          <div className="w-full max-w-md rounded-3xl float3d" onClick={(e) => e.stopPropagation()}>
+            <div className="relative h-56 rounded-t-3xl overflow-hidden">
               <SpeciesImage speciesId={selected.id} emoji={selected.emoji} alt={selected.nameJa} className="w-full h-full" />
               <span className={`absolute top-3 left-3 text-xs font-bold px-2.5 py-1 rounded-full shadow ${rarityBadge(selected.rarity)}`}>
                 {RARITY_LABEL[selected.rarity]}
@@ -132,7 +135,7 @@ export default function EncyclopediaClient({ counts }: { counts: Record<string, 
               {selected.invasive && (
                 <div className="mt-3 text-sm text-coral-600 bg-coral-100 rounded-lg px-3 py-2 flex items-center gap-2"><FiAlertTriangle size={15} /> 外来種 — 発見時は報告にご協力ください</div>
               )}
-              <button onClick={() => setSelected(null)} className="w-full mt-5 bg-neutral-800 hover:bg-neutral-900 text-white font-bold rounded-xl py-3 transition-colors">
+              <button onClick={() => setSelected(null)} className="w-full mt-5 bg-neutral-800 hover:bg-neutral-900 text-white font-bold rounded-xl py-3 border-[1.5px] border-neutral-900 btn3d">
                 閉じる
               </button>
             </div>
@@ -145,7 +148,7 @@ export default function EncyclopediaClient({ counts }: { counts: Record<string, 
 
 function Field({ label, value }: { label: string; value: string }) {
   return (
-    <div className="bg-neutral-50 rounded-xl px-3 py-2">
+    <div className="bg-neutral-50 rounded-xl px-3 py-2 well3d">
       <dt className="text-[11px] text-neutral-400">{label}</dt>
       <dd className="font-semibold text-neutral-700">{value}</dd>
     </div>

@@ -39,8 +39,9 @@ export default async function HomePage() {
   return (
     <div className="pb-2">
       {/* Gradient hero */}
-      <section className="relative bg-gradient-to-br from-forest-500 via-forest-600 to-teal-700 px-5 pt-6 pb-16 overflow-hidden">
-        <div className="absolute -top-12 -right-10 w-52 h-52 rounded-full bg-lime-400/20 blur-3xl" />
+      <section className="relative bg-gradient-to-br from-forest-500 via-forest-600 to-teal-700 px-5 pt-6 pb-16 overflow-hidden shadow-[inset_0_-18px_28px_-18px_rgba(0,0,0,0.3)]">
+        <div className="absolute inset-x-0 top-0 h-px bg-white/25" />
+        <div className="absolute -top-12 -right-10 w-52 h-52 rounded-full bg-lime-400/25 blur-3xl" />
         <div className="relative text-white">
           <p className="text-sm text-white/75"><UserGreeting /></p>
           <h1 className="text-2xl font-bold mt-1 leading-snug">富士の自然を、探しにいこう。</h1>
@@ -51,15 +52,15 @@ export default async function HomePage() {
             </span>
             <span className="text-xs text-white/70">{stats.xpInLevel} / {stats.xpForLevel} XP</span>
           </div>
-          <div className="h-2 mt-2 bg-black/15 rounded-full overflow-hidden">
-            <div className="h-full bg-lime-400 rounded-full" style={{ width: `${(stats.xpInLevel / stats.xpForLevel) * 100}%` }} />
+          <div className="h-2.5 mt-2 bg-black/25 rounded-full overflow-hidden shadow-[inset_0_1.5px_3px_rgba(0,0,0,0.35)]">
+            <div className="h-full bg-gradient-to-b from-lime-300 to-lime-500 rounded-full shadow-[0_1px_0_rgba(255,255,255,0.4)]" style={{ width: `${(stats.xpInLevel / stats.xpForLevel) * 100}%` }} />
           </div>
         </div>
       </section>
 
       <div className="px-5 -mt-10 relative z-10 space-y-4">
         {/* Primary CTA */}
-        <Link href="/capture" className="flex items-center gap-4 bg-white rounded-3xl border border-neutral-200/60 shadow-soft p-4 active:scale-[0.99] transition-transform">
+        <Link href="/capture" className="flex items-center gap-4 bg-white rounded-3xl border border-neutral-200 btn3d p-4">
           <span className="w-14 h-14 rounded-2xl bg-gradient-to-br from-forest-500 to-teal-600 flex items-center justify-center shadow-glow shrink-0 text-white">
             <FiCamera size={26} />
           </span>
@@ -78,7 +79,7 @@ export default async function HomePage() {
         </div>
 
         {/* Ecosystem health */}
-        <section className="bg-white rounded-3xl border border-neutral-200/60 shadow-soft p-5">
+        <section className="card3d rounded-3xl p-5">
           <h2 className="font-semibold text-neutral-800 mb-4">エコシステムの健康度</h2>
           <div className="space-y-3.5">
             {ECOS.map((e) => {
@@ -86,8 +87,8 @@ export default async function HomePage() {
               return (
                 <div key={e.key} className="flex items-center gap-3">
                   <span className="w-20 text-sm text-neutral-500 flex items-center gap-1.5"><e.Icon className={e.text} size={15} /> {e.label}</span>
-                  <div className="flex-1 h-2 bg-neutral-100 rounded-full overflow-hidden">
-                    <div className={`h-full rounded-full ${e.bar}`} style={{ width: `${pct}%` }} />
+                  <div className="flex-1 h-2.5 bg-neutral-100 rounded-full overflow-hidden well3d">
+                    <div className={`h-full rounded-full ${e.bar} shadow-[0_1px_0_rgba(255,255,255,0.5)]`} style={{ width: `${pct}%` }} />
                   </div>
                   <span className={`w-9 text-right text-sm font-bold ${e.text}`}>{pct}%</span>
                 </div>
@@ -97,7 +98,7 @@ export default async function HomePage() {
         </section>
 
         {/* Rare alert */}
-        <section className="relative overflow-hidden bg-gradient-to-r from-gold-400 to-gold-500 rounded-3xl shadow-soft p-4 flex items-center gap-4 text-white">
+        <section className="relative overflow-hidden bg-gradient-to-r from-gold-400 to-gold-500 rounded-3xl tile3d p-4 flex items-center gap-4 text-white">
           <SpeciesImage speciesId={rare.id} emoji={rare.emoji} alt={rare.nameJa} className="w-16 h-16" rounded="rounded-2xl ring-2 ring-white/50" />
           <div className="flex-1">
             <div className="text-[11px] font-bold text-white/90 flex items-center gap-1"><LuSparkles size={12} /> レアアラート</div>
@@ -113,7 +114,7 @@ export default async function HomePage() {
 
 function Tile({ value, unit, label, bg, num }: { value: number; unit: string; label: string; bg: string; num: string }) {
   return (
-    <div className={`${bg} rounded-2xl p-3.5`}>
+    <div className={`${bg} rounded-2xl p-3.5 tile3d`}>
       <div className={`text-[26px] font-bold leading-none ${num}`}>
         {value}
         <span className="text-xs font-semibold opacity-60 ml-0.5">{unit}</span>

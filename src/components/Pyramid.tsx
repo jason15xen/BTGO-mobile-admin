@@ -39,7 +39,7 @@ export default function Pyramid({ ecosystem, discovered, highlightId, compact }:
               </span>
             )}
             <div
-              className="flex items-center justify-center gap-2 rounded-2xl bg-gradient-to-b from-forest-100/70 to-forest-50 ring-1 ring-forest-100 py-2 px-2"
+              className="flex items-center justify-center gap-2 rounded-2xl bg-gradient-to-b from-neutral-200/60 to-neutral-100/40 ring-1 ring-black/5 shadow-inset py-2.5 px-2"
               style={{ width: ROW_WIDTH[level] }}
             >
               {cells.map((s) => {
@@ -51,7 +51,9 @@ export default function Pyramid({ ecosystem, discovered, highlightId, compact }:
                       key={s.id}
                       title={s.nameJa}
                       className={`${cellSize} rounded-full overflow-hidden shrink-0 ring-2 transition-all ${
-                        isNew ? "ring-gold-400 scale-110 shadow-lg" : "ring-white shadow-sm"
+                        isNew
+                          ? "ring-gold-400 scale-110 shadow-[0_4px_12px_rgba(0,0,0,0.25)]"
+                          : "ring-white shadow-[0_2px_6px_rgba(0,0,0,0.18)]"
                       }`}
                     >
                       <SpeciesImage
@@ -67,7 +69,7 @@ export default function Pyramid({ ecosystem, discovered, highlightId, compact }:
                   <div
                     key={s.id}
                     title="未発見"
-                    className={`${cellSize} rounded-full shrink-0 bg-forest-200/60 border-2 border-dashed border-forest-300 flex items-center justify-center text-forest-300 text-lg`}
+                    className={`${cellSize} rounded-full shrink-0 bg-neutral-200/70 border border-black/10 shadow-[inset_0_2px_4px_rgba(0,0,0,0.18)] flex items-center justify-center text-neutral-400 text-lg`}
                   >
                     ？
                   </div>

@@ -32,7 +32,7 @@ export default function PyramidClient({
       <PageHero title="生態系ピラミッド" subtitle="発見した生き物で食物連鎖を完成させよう" gradient={`${ECO_THEME[eco].gradient}`} />
       <Screen>
         {/* Ecosystem tabs */}
-        <div className="relative z-10 flex gap-2 bg-white rounded-2xl p-1 border border-neutral-100 shadow-soft -mt-9">
+        <div className="relative z-10 flex gap-2 float3d rounded-2xl p-1 -mt-9">
           {TABS.map((t) => {
             const Icon = ECO_THEME[t.key].Icon;
             return (

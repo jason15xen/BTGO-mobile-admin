@@ -19,7 +19,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="ja">
       <body>
-        <div className="mx-auto w-full max-w-[480px] h-[100dvh] flex flex-col bg-neutral-50 shadow-2xl overflow-hidden">
+        <div className="mx-auto w-full max-w-[480px] h-[100dvh] flex flex-col app-surface shadow-2xl overflow-hidden ring-1 ring-black/5">
           <TopNav />
           <main className="flex-1 overflow-y-auto overscroll-contain no-scrollbar">{children}</main>
           <BottomNav />

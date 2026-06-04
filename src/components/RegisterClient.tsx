@@ -120,7 +120,7 @@ export default function RegisterClient() {
           <button
             type="submit"
             disabled={submitting}
-            className="w-full bg-forest-600 hover:bg-forest-700 disabled:opacity-60 text-white font-bold rounded-xl py-3.5 transition-colors"
+            className="w-full bg-forest-600 hover:bg-forest-700 disabled:opacity-60 text-white font-bold rounded-xl py-3.5 border-[1.5px] border-forest-700 btn3d"
           >
             {submitting ? "登録中…" : "登録して始める"}
           </button>
@@ -137,14 +137,15 @@ export default function RegisterClient() {
       <style>{`
         .input {
           width: 100%;
-          border: 1px solid #dcebde;
+          border: 1.5px solid #d6e2d9;
           border-radius: 0.75rem;
           padding: 0.7rem 0.9rem;
           font-size: 0.95rem;
-          background: #f8fbf9;
+          background: #f4f8f5;
           outline: none;
+          box-shadow: inset 0 2px 4px rgba(16,28,22,0.10), inset 0 -1px 0 rgba(255,255,255,0.6);
         }
-        .input:focus { border-color: #3f7d49; background: #fff; box-shadow: 0 0 0 3px rgba(63,125,73,0.12); }
+        .input:focus { border-color: #3f7d49; background: #fff; box-shadow: inset 0 2px 4px rgba(16,28,22,0.08), 0 0 0 3px rgba(63,125,73,0.15); }
       `}</style>
     </div>
   );
