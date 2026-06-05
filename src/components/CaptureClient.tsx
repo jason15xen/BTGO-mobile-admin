@@ -4,11 +4,12 @@ import { useEffect, useRef, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { SPECIES, ECOSYSTEM_LABEL } from "@/data/species";
 import { SPECIES_INFO } from "@/data/speciesInfo";
-import { ECO_THEME, RARITY_THEME } from "@/lib/theme";
+import { ECO_THEME } from "@/lib/theme";
 import { rewardFor } from "@/lib/game";
 import type { Species } from "@/lib/types";
 import Pyramid from "@/components/Pyramid";
 import SpeciesImage from "@/components/SpeciesImage";
+import { useImmersive } from "@/components/AppShell";
 import type { IconType } from "react-icons";
 import { FiX, FiZap, FiImage, FiCamera, FiMapPin, FiTag, FiBarChart2, FiAlertTriangle, FiBookOpen, FiChevronLeft } from "react-icons/fi";
 import { LuUtensils, LuPartyPopper, LuSwitchCamera } from "react-icons/lu";
@@ -39,10 +40,18 @@ export default function CaptureClient() {
   const [discovered, setDiscovered] = useState<Set<string>>(new Set());
   const [isNew, setIsNew] = useState(false);
 
+  const setImmersive = useImmersive();
+
   const stopCamera = useCallback(() => {
     streamRef.current?.getTracks().forEach((t) => t.stop());
     streamRef.current = null;
   }, []);
+
+  // Hide the bottom nav only while the camera is live; show it on result/reflection.
+  useEffect(() => {
+    setImmersive(phase === "camera" || phase === "analyzing");
+  }, [phase, setImmersive]);
+  useEffect(() => () => setImmersive(false), [setImmersive]);
 
   // Start the device camera.
   useEffect(() => {
@@ -276,7 +285,6 @@ export default function CaptureClient() {
 
   if (!subject) return null;
   const theme = ECO_THEME[subject.ecosystem];
-  const rarity = RARITY_THEME[subject.rarity];
   const info = SPECIES_INFO[subject.id];
   const rw = rewardFor(subject);
 
@@ -299,11 +307,6 @@ export default function CaptureClient() {
             <div className="aspect-[4/3]">
               <SpeciesImage speciesId={subject.id} emoji={subject.emoji} alt={subject.nameJa} className="w-full h-full" />
             </div>
-            {subject.rarity !== "common" && (
-              <span className={`absolute top-3 right-3 text-xs font-bold px-3 py-1 rounded-full ${rarity.chip} ${rarity.glow}`}>
-                {rarity.label}
-              </span>
-            )}
           </div>
 
           <div className="mt-4">
