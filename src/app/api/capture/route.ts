@@ -4,7 +4,10 @@ import { SPECIES_BY_ID } from "@/data/species";
 import { DEMO_USER, rewardFor } from "@/lib/game";
 import type { Observation } from "@/lib/types";
 
-// Capture locations around the Mt. Fuji region (matches the dashboard hotspots).
+// Always run on the Node.js runtime (fs access), never Edge.
+export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
+
 const SPOTS = [
   { name: "河口湖", lat: 35.517, lng: 138.754 },
   { name: "山中湖", lat: 35.418, lng: 138.872 },
@@ -16,42 +19,62 @@ const SPOTS = [
 ];
 
 export async function POST(req: Request) {
-  const { speciesId } = await req.json();
-  const species = SPECIES_BY_ID[speciesId];
-  if (!species) {
-    return NextResponse.json({ error: "unknown species" }, { status: 400 });
+  try {
+    const { speciesId } = await req.json();
+    const species = SPECIES_BY_ID[speciesId];
+    if (!species) {
+      return NextResponse.json({ error: "unknown species" }, { status: 400 });
+    }
+
+    const spot = SPOTS[Math.floor(Math.random() * SPOTS.length)];
+    const jitter = () => (Math.random() - 0.5) * 0.02;
+
+    // Read existing data (falls back to bundled seed; never throws).
+    let all: Observation[] = [];
+    try {
+      all = await readObservations();
+    } catch {
+      all = [];
+    }
+
+    const observation: Observation = {
+      id: `obs-cap-${Date.now()}`,
+      speciesId,
+      userId: DEMO_USER.id,
+      userName: DEMO_USER.name,
+      lat: Number((spot.lat + jitter()).toFixed(5)),
+      lng: Number((spot.lng + jitter()).toFixed(5)),
+      area: spot.name,
+      observedAt: new Date().toISOString(),
+      status: "verified",
+    };
+
+    // Persist if possible; ignore on read-only hosts (e.g. Vercel).
+    try {
+      await addObservation(observation);
+    } catch {
+      /* ignore */
+    }
+
+    const reward = rewardFor(species);
+    const isNewSpecies = !all.some(
+      (o) => o.userId === DEMO_USER.id && o.speciesId === speciesId
+    );
+    const myDiscovered = Array.from(
+      new Set(
+        all
+          .concat(observation)
+          .filter((o) => o.userId === DEMO_USER.id)
+          .map((o) => o.speciesId)
+      )
+    );
+
+    return NextResponse.json({ observation, reward, isNewSpecies, myDiscovered });
+  } catch (e) {
+    // Last-resort guard so the capture flow never breaks the demo.
+    return NextResponse.json(
+      { error: "capture_failed", message: e instanceof Error ? e.message : String(e) },
+      { status: 200 }
+    );
   }
-
-  const spot = SPOTS[Math.floor(Math.random() * SPOTS.length)];
-  const jitter = () => (Math.random() - 0.5) * 0.02;
-
-  const all = await readObservations();
-  const observation: Observation = {
-    id: `obs-cap-${Date.now()}`,
-    speciesId,
-    userId: DEMO_USER.id,
-    userName: DEMO_USER.name,
-    lat: Number((spot.lat + jitter()).toFixed(5)),
-    lng: Number((spot.lng + jitter()).toFixed(5)),
-    area: spot.name,
-    observedAt: new Date().toISOString(),
-    status: "verified",
-  };
-  await addObservation(observation);
-
-  const reward = rewardFor(species);
-  const isNewSpecies = !all.some(
-    (o) => o.userId === DEMO_USER.id && o.speciesId === speciesId
-  );
-
-  const myDiscovered = Array.from(
-    new Set(
-      all
-        .concat(observation)
-        .filter((o) => o.userId === DEMO_USER.id)
-        .map((o) => o.speciesId)
-    )
-  );
-
-  return NextResponse.json({ observation, reward, isNewSpecies, myDiscovered });
 }

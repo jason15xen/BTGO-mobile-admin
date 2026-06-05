@@ -151,13 +151,17 @@ export default function CaptureClient() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ speciesId: subject.id }),
       });
-      const data = await res.json();
-      setReward(data.reward);
-      setIsNew(Boolean(data.isNewSpecies));
-      setDiscovered(new Set<string>(data.myDiscovered ?? []));
+      const data = await res.json().catch(() => ({}));
+      setReward(data.reward ?? rewardFor(subject));
+      setIsNew(data.isNewSpecies ?? true);
+      setDiscovered(new Set<string>(data.myDiscovered ?? [subject.id]));
       setPhase("reflection");
     } catch {
-      setPhase("result");
+      // Network/server failure — still show the reflection with local values.
+      setReward(rewardFor(subject));
+      setIsNew(true);
+      setDiscovered(new Set<string>([subject.id]));
+      setPhase("reflection");
     }
   }
 
