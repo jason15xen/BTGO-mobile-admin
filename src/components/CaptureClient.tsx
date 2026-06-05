@@ -10,8 +10,8 @@ import type { Species } from "@/lib/types";
 import Pyramid from "@/components/Pyramid";
 import SpeciesImage from "@/components/SpeciesImage";
 import type { IconType } from "react-icons";
-import { FiX, FiZap, FiImage, FiCamera, FiMapPin, FiTag, FiBarChart2, FiAlertTriangle, FiBookOpen } from "react-icons/fi";
-import { LuUtensils, LuPartyPopper } from "react-icons/lu";
+import { FiX, FiZap, FiImage, FiCamera, FiMapPin, FiTag, FiBarChart2, FiAlertTriangle, FiBookOpen, FiChevronLeft } from "react-icons/fi";
+import { LuUtensils, LuPartyPopper, LuSwitchCamera } from "react-icons/lu";
 
 type Phase = "camera" | "analyzing" | "result" | "saving" | "reflection";
 
@@ -31,6 +31,7 @@ export default function CaptureClient() {
   const [camError, setCamError] = useState(false);
   const [camReason, setCamReason] = useState("");
   const [attempt, setAttempt] = useState(0);
+  const [facing, setFacing] = useState<"environment" | "user">("environment");
   const [shot, setShot] = useState<string | null>(null); // user's captured photo (dataURL)
   const [subject, setSubject] = useState<Species | null>(null);
   const [progress, setProgress] = useState(0);
@@ -59,7 +60,7 @@ export default function CaptureClient() {
           );
         }
         const stream = await navigator.mediaDevices.getUserMedia({
-          video: { facingMode: { ideal: "environment" } },
+          video: { facingMode: facing },
           audio: false,
         });
         if (cancelled) {
@@ -88,8 +89,9 @@ export default function CaptureClient() {
     })();
     return () => {
       cancelled = true;
+      stopCamera();
     };
-  }, [phase, attempt]);
+  }, [phase, attempt, facing, stopCamera]);
 
   useEffect(() => stopCamera, [stopCamera]);
 
@@ -231,7 +233,14 @@ export default function CaptureClient() {
             aria-label="シャッター"
             className="w-[76px] h-[76px] rounded-full bg-white ring-4 ring-white/30 disabled:opacity-40 active:scale-95 transition-transform"
           />
-          <div className="w-12 text-center text-xs text-white/40">AI判定</div>
+          <button
+            onClick={() => setFacing((f) => (f === "environment" ? "user" : "environment"))}
+            disabled={camError}
+            className="text-xs text-white/80 disabled:opacity-40 flex flex-col items-center gap-1"
+          >
+            <LuSwitchCamera size={20} />
+            <span>切替</span>
+          </button>
         </div>
 
         <input ref={fileRef} type="file" accept="image/*" capture="environment" onChange={onFile} className="hidden" />
@@ -275,32 +284,39 @@ export default function CaptureClient() {
   if (phase === "result" || phase === "saving") {
     return (
       <div className="min-h-full bg-neutral-50 pb-6">
-        {/* hero photo */}
-        <div className="relative h-72">
-          <SpeciesImage speciesId={subject.id} emoji={subject.emoji} alt={subject.nameJa} className="w-full h-full" />
-          <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/10 to-black/20" />
-          <button onClick={() => { setSubject(null); setShot(null); setPhase("camera"); }} className="absolute top-4 left-4 text-white text-xl bg-black/30 rounded-full w-9 h-9">
-            ‹
+        {/* header */}
+        <header className="flex items-center justify-between px-5 py-3">
+          <button onClick={() => { setSubject(null); setShot(null); setPhase("camera"); }} aria-label="戻る" className="text-neutral-600">
+            <FiChevronLeft size={24} />
           </button>
-          <span className={`absolute top-4 right-4 text-xs font-bold px-3 py-1 rounded-full ${rarity.chip} ${rarity.glow}`}>
-            {rarity.label}
-          </span>
-          {/* user's own shot */}
-          {shot && (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img src={shot} alt="あなたの写真" className="absolute bottom-4 right-4 w-16 h-16 object-cover rounded-xl ring-2 ring-white shadow-lg" />
-          )}
-          <div className="absolute bottom-4 left-5 text-white">
-            <div className="text-xs opacity-90 flex items-center gap-2">
+          <span className="font-semibold text-neutral-800">解析結果</span>
+          <span className="w-6" />
+        </header>
+
+        {/* main photo */}
+        <div className="px-5">
+          <div className="relative rounded-3xl overflow-hidden border border-neutral-200 shadow-[0_16px_30px_-12px_rgba(16,28,22,0.45)]">
+            <div className="aspect-[4/3]">
+              <SpeciesImage speciesId={subject.id} emoji={subject.emoji} alt={subject.nameJa} className="w-full h-full" />
+            </div>
+            {subject.rarity !== "common" && (
+              <span className={`absolute top-3 right-3 text-xs font-bold px-3 py-1 rounded-full ${rarity.chip} ${rarity.glow}`}>
+                {rarity.label}
+              </span>
+            )}
+          </div>
+
+          <div className="mt-4">
+            <div className="text-xs text-neutral-400 flex items-center gap-2 mb-1">
               <span className={`px-2 py-0.5 rounded-full text-[11px] font-semibold inline-flex items-center gap-1 ${theme.chip}`}><theme.Icon size={11} /> {theme.name}</span>
               AIが判定しました
             </div>
-            <h1 className="text-3xl font-bold mt-1 drop-shadow">{subject.nameJa}</h1>
-            <p className="text-sm italic opacity-90">{subject.nameSci}</p>
+            <h1 className="text-2xl font-bold text-neutral-900">{subject.nameJa}</h1>
+            <p className="text-sm italic text-neutral-400">{subject.nameSci}</p>
           </div>
         </div>
 
-        <div className="px-5 -mt-4 relative space-y-4">
+        <div className="px-5 mt-4 space-y-4">
           {/* reward */}
           <div className="card3d rounded-2xl p-4 flex items-center justify-around">
             <Reward label="経験値" value={`+${rw.xp}`} cls="text-forest-600" />
