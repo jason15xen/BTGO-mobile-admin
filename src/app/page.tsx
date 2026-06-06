@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { FiCamera } from "react-icons/fi";
-import { LuSparkles } from "react-icons/lu";
+import { LuLeaf, LuSparkles } from "react-icons/lu";
 import SpeciesImage from "@/components/SpeciesImage";
 import UserGreeting from "@/components/UserGreeting";
 import { readObservations } from "@/lib/dataStore";
@@ -14,75 +14,82 @@ export default async function HomePage() {
   const stats = computeUserStats(obs);
 
   const overallHealth = Math.round((new Set(obs.map((o) => o.speciesId)).size / SPECIES.length) * 100);
+  const healthLabel = overallHealth >= 70 ? "良好" : overallHealth >= 40 ? "ふつう" : "要観察";
   const latestDate = obs[0]?.observedAt.slice(0, 10);
   const todaySpecies = new Set(obs.filter((o) => o.observedAt.slice(0, 10) === latestDate).map((o) => o.speciesId)).size;
   const rare = SPECIES.find((s) => s.rarity === "legendary") ?? SPECIES[0];
 
   return (
-    <div className="pb-2">
-      {/* Gradient hero */}
-      <section className="relative bg-gradient-to-br from-forest-500 via-forest-600 to-teal-700 px-5 pt-6 pb-16 overflow-hidden shadow-[inset_0_-18px_28px_-18px_rgba(0,0,0,0.3)]">
-        <div className="absolute inset-x-0 top-0 h-px bg-white/25" />
-        <div className="absolute -top-12 -right-10 w-52 h-52 rounded-full bg-lime-400/25 blur-3xl" />
-        <div className="relative text-white">
-          <p className="text-sm text-white/75"><UserGreeting /></p>
-          <h1 className="text-2xl font-bold mt-1 leading-snug">富士の自然を、探しにいこう。</h1>
-          <div className="mt-4 flex items-center justify-between">
-            <span className="flex items-center gap-2">
-              <span className="bg-lime-400 text-forest-900 text-[11px] font-bold rounded-full px-2.5 py-1">Lv.{stats.level}</span>
-              <span className="font-semibold text-sm">{stats.title}</span>
-            </span>
-            <span className="text-xs text-white/70">{stats.xpInLevel} / {stats.xpForLevel} XP</span>
-          </div>
-          <div className="h-2.5 mt-2 bg-black/25 rounded-full overflow-hidden shadow-[inset_0_1.5px_3px_rgba(0,0,0,0.35)]">
-            <div className="h-full bg-gradient-to-b from-lime-300 to-lime-500 rounded-full shadow-[0_1px_0_rgba(255,255,255,0.4)]" style={{ width: `${(stats.xpInLevel / stats.xpForLevel) * 100}%` }} />
-          </div>
+    <div className="px-5 pt-5 pb-6 space-y-5">
+      {/* Greeting + headline */}
+      <header>
+        <p className="text-sm text-forest-500"><UserGreeting /></p>
+        <h1 className="text-[27px] leading-snug font-extrabold tracking-tight text-forest-800 mt-1">
+          富士の自然探索へ<br />出かけよう！
+        </h1>
+      </header>
+
+      {/* Level */}
+      <section>
+        <div className="flex items-center gap-2">
+          <span className="bg-forest-600 text-white text-[11px] font-bold rounded-full px-2.5 py-0.5">Lv.{stats.level}</span>
+          <span className="font-semibold text-forest-800 text-sm">{stats.title}</span>
+          <span className="ml-auto text-xs text-neutral-400">{stats.xpInLevel} / {stats.xpForLevel} XP</span>
+        </div>
+        <div className="h-2.5 mt-2 bg-neutral-200/70 rounded-full overflow-hidden well3d">
+          <div className="h-full bg-forest-500 rounded-full" style={{ width: `${(stats.xpInLevel / stats.xpForLevel) * 100}%` }} />
         </div>
       </section>
 
-      <div className="px-5 -mt-10 relative z-10 space-y-4">
-        {/* Primary CTA */}
-        <Link href="/capture" className="flex items-center gap-4 bg-white rounded-3xl border border-neutral-200 btn3d p-4">
-          <span className="w-14 h-14 rounded-2xl bg-gradient-to-br from-forest-500 to-teal-600 flex items-center justify-center shadow-glow shrink-0 text-white">
-            <FiCamera size={26} />
-          </span>
-          <div className="flex-1">
-            <div className="font-bold text-neutral-900 text-[17px]">生き物を見つける</div>
-            <div className="text-xs text-neutral-400 mt-0.5">カメラで撮影 → AIが種を判定</div>
-          </div>
-          <span className="text-forest-500 text-2xl">›</span>
-        </Link>
+      {/* Ecosystem health */}
+      <section>
+        <div className="text-sm font-semibold text-forest-700">エコシステムの健康度</div>
+        <div className="flex items-baseline gap-2 mt-0.5">
+          <span className="text-3xl font-extrabold text-forest-600">{overallHealth}%</span>
+          <span className="text-sm font-semibold text-forest-500">{healthLabel}</span>
+        </div>
+        <div className="h-2 mt-1.5 bg-neutral-200/70 rounded-full overflow-hidden well3d">
+          <div className="h-full bg-gradient-to-r from-forest-400 to-forest-600 rounded-full" style={{ width: `${overallHealth}%` }} />
+        </div>
+      </section>
 
-        {/* Colorful stat tiles */}
-        <div className="grid grid-cols-3 gap-3">
-          <Tile value={todaySpecies} unit="種" label="今日の発見" bg="bg-forest-50" num="text-forest-600" />
-          <Tile value={stats.speciesCount} unit="種" label="登録種数" bg="bg-teal-50" num="text-teal-600" />
-          <Tile value={overallHealth} unit="%" label="健康度" bg="bg-lime-50" num="text-lime-600" />
+      {/* Hero photo + capture */}
+      <Link href="/capture" className="block relative rounded-3xl overflow-hidden h-56 shadow-soft active:scale-[0.99] transition-transform">
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src="/eco/fuji.webp" alt="富士山" className="absolute inset-0 w-full h-full object-cover" />
+        <div className="absolute inset-0 bg-gradient-to-t from-black/45 via-black/10 to-transparent" />
+        <div className="absolute inset-0 flex flex-col items-center justify-center gap-2.5">
+          <span className="w-[68px] h-[68px] rounded-full bg-forest-600 ring-4 ring-white/40 flex items-center justify-center text-white shadow-glow">
+            <FiCamera size={30} />
+          </span>
+          <span className="text-white font-bold text-lg drop-shadow">生き物を見つける</span>
+        </div>
+      </Link>
+
+      {/* Two info cards */}
+      <div className="grid grid-cols-2 gap-3">
+        <div className="card3d rounded-2xl p-4">
+          <div className="flex items-center justify-between">
+            <span className="text-xs text-neutral-400">今日の発見</span>
+            <LuLeaf size={15} className="text-forest-500" />
+          </div>
+          <div className="text-[26px] font-extrabold text-forest-700 leading-none mt-1.5">
+            {todaySpecies}<span className="text-sm font-bold text-neutral-400 ml-1">種類</span>
+          </div>
+          <div className="text-[11px] text-neutral-400 mt-1.5">みんなの発見</div>
         </div>
 
-        {/* Rare alert */}
-        <section className="relative overflow-hidden bg-gradient-to-r from-gold-400 to-gold-500 rounded-3xl tile3d p-4 flex items-center gap-4 text-white">
-          <SpeciesImage speciesId={rare.id} emoji={rare.emoji} alt={rare.nameJa} className="w-16 h-16" rounded="rounded-2xl ring-2 ring-white/50" />
-          <div className="flex-1">
-            <div className="text-[11px] font-bold text-white/90 flex items-center gap-1"><LuSparkles size={12} /> レアアラート</div>
-            <div className="text-[17px] font-bold leading-tight mt-0.5">{rare.nameJa}</div>
-            <div className="text-xs text-white/85">が近くに出現中</div>
+        <Link href="/capture" className="card3d rounded-2xl p-4">
+          <div className="text-xs font-semibold text-gold-600 flex items-center gap-1"><LuSparkles size={12} /> レアアラート</div>
+          <div className="flex items-center gap-2 mt-1.5">
+            <SpeciesImage speciesId={rare.id} emoji={rare.emoji} alt={rare.nameJa} className="w-10 h-10 shrink-0" rounded="rounded-lg" />
+            <div className="min-w-0">
+              <div className="text-sm font-bold text-neutral-800 leading-tight truncate">{rare.nameJa}</div>
+              <div className="text-[11px] text-neutral-400">が出没しています！</div>
+            </div>
           </div>
-          <Link href="/capture" className="text-sm font-bold bg-white/20 rounded-full px-3 py-1.5">探す</Link>
-        </section>
+        </Link>
       </div>
-    </div>
-  );
-}
-
-function Tile({ value, unit, label, bg, num }: { value: number; unit: string; label: string; bg: string; num: string }) {
-  return (
-    <div className={`${bg} rounded-2xl p-3.5 tile3d`}>
-      <div className={`text-[26px] font-bold leading-none ${num}`}>
-        {value}
-        <span className="text-xs font-semibold opacity-60 ml-0.5">{unit}</span>
-      </div>
-      <div className="text-[11px] text-neutral-500 mt-2">{label}</div>
     </div>
   );
 }

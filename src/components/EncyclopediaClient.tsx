@@ -34,8 +34,8 @@ export default function EncyclopediaClient({ discoveries }: { discoveries: Recor
   );
 
   return (
-    <div>
-      <PageHero title="図鑑" subtitle="発見した生き物のコレクション" gradient="from-teal-500 to-forest-700" />
+    <div className="min-h-full bg-forest-50">
+      <PageHero title="図鑑" subtitle="発見した生き物のコレクション" gradient="from-forest-500 to-forest-700" />
       <Screen>
         {/* progress */}
         <Card className="-mt-9 relative z-10">
@@ -47,10 +47,10 @@ export default function EncyclopediaClient({ discoveries }: { discoveries: Recor
                 <span className="text-base font-bold text-neutral-400"> / {SPECIES.length} 種類</span>
               </div>
             </div>
-            <div className="text-3xl font-extrabold text-teal-600">{pct}%</div>
+            <div className="text-3xl font-extrabold text-forest-600">{pct}%</div>
           </div>
           <div className="h-2.5 mt-3 bg-neutral-100 rounded-full overflow-hidden well3d">
-            <div className="h-full bg-gradient-to-r from-teal-400 to-forest-500 rounded-full transition-all" style={{ width: `${pct}%` }} />
+            <div className="h-full bg-gradient-to-r from-forest-400 to-forest-600 rounded-full transition-all" style={{ width: `${pct}%` }} />
           </div>
         </Card>
 
@@ -61,7 +61,7 @@ export default function EncyclopediaClient({ discoveries }: { discoveries: Recor
               key={f.key}
               onClick={() => setFilter(f.key)}
               className={`px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap transition-colors ${
-                filter === f.key ? "bg-teal-600 text-white shadow" : "bg-white text-neutral-500 border border-neutral-200"
+                filter === f.key ? "bg-forest-600 text-white shadow" : "bg-white text-neutral-500 border border-neutral-200"
               }`}
             >
               {f.label}

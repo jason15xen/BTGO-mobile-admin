@@ -47,7 +47,7 @@ export default function ProfileClient({ stats, recent }: { stats: UserStats; rec
   const name = account?.name ?? "ゲスト";
 
   return (
-    <div>
+    <div className="min-h-full bg-forest-50">
       <PageHero title="マイページ" subtitle={account?.email ?? "アカウント・実績"} gradient="from-forest-500 to-teal-700" />
       <Screen>
         {/* Identity / auth */}

@@ -12,7 +12,7 @@ export default function TopNav() {
   if (HIDE_ON.includes(pathname)) return null;
 
   return (
-    <header className="shrink-0 z-40 bg-neutral-50/85 backdrop-blur border-b border-neutral-200/60">
+    <header className="shrink-0 z-40 bg-forest-50/85 backdrop-blur border-b border-forest-200/60">
       <div className="h-14 px-5 flex items-center justify-between">
         <Link href="/" className="flex items-center gap-2">
           <span className="w-8 h-8 rounded-xl bg-gradient-to-br from-forest-500 to-teal-600 flex items-center justify-center text-white shadow-glow"><LuLeaf size={17} /></span>

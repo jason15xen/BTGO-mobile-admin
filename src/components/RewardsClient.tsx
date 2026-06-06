@@ -14,11 +14,11 @@ const COUPONS: { name: string; offer: string; cost: number; Icon: IconType }[] =
 
 export default function RewardsClient({ stats }: { stats: UserStats }) {
   return (
-    <div>
+    <div className="min-h-full bg-forest-50">
       <PageHero
         title="報酬"
         subtitle="B-mileで地域のクーポンと交換"
-        gradient="from-gold-400 to-gold-600"
+        gradient="from-forest-500 to-forest-700"
         right={
           <div className="text-right text-white">
             <div className="text-3xl font-extrabold leading-none">{stats.points.toLocaleString()}</div>
@@ -42,7 +42,7 @@ export default function RewardsClient({ stats }: { stats: UserStats }) {
                 <button
                   disabled={!affordable}
                   className={`text-sm font-bold rounded-full px-4 py-2 border-[1.5px] btn3d ${
-                    affordable ? "bg-gold-400 text-forest-900 border-gold-600/50 hover:bg-gold-500" : "bg-neutral-100 text-neutral-400 border-neutral-200"
+                    affordable ? "bg-forest-600 text-white border-forest-700 hover:bg-forest-700" : "bg-neutral-100 text-neutral-400 border-neutral-200"
                   }`}
                 >
                   {c.cost} B-mile
