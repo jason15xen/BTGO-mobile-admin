@@ -1,35 +1,17 @@
 import Link from "next/link";
-import type { IconType } from "react-icons";
 import { FiCamera } from "react-icons/fi";
-import { LuTrees, LuDroplet, LuWaves, LuSparkles } from "react-icons/lu";
+import { LuSparkles } from "react-icons/lu";
 import SpeciesImage from "@/components/SpeciesImage";
 import UserGreeting from "@/components/UserGreeting";
 import { readObservations } from "@/lib/dataStore";
 import { computeUserStats } from "@/lib/game";
-import { SPECIES, SPECIES_BY_ID } from "@/data/species";
-import type { Ecosystem } from "@/lib/types";
+import { SPECIES } from "@/data/species";
 
 export const dynamic = "force-dynamic";
-
-const ECOS: { key: Ecosystem; label: string; Icon: IconType; bar: string; text: string }[] = [
-  { key: "terrestrial", label: "陸域", Icon: LuTrees, bar: "bg-forest-500", text: "text-forest-600" },
-  { key: "freshwater", label: "淡水域", Icon: LuDroplet, bar: "bg-teal-500", text: "text-teal-600" },
-  { key: "marine", label: "海域", Icon: LuWaves, bar: "bg-lime-500", text: "text-lime-600" },
-];
 
 export default async function HomePage() {
   const obs = await readObservations();
   const stats = computeUserStats(obs);
-
-  const discoveredByEco = new Map<string, Set<string>>();
-  for (const o of obs) {
-    const sp = SPECIES_BY_ID[o.speciesId];
-    if (!sp) continue;
-    if (!discoveredByEco.has(sp.ecosystem)) discoveredByEco.set(sp.ecosystem, new Set());
-    discoveredByEco.get(sp.ecosystem)!.add(sp.id);
-  }
-  const totalByEco = new Map<string, number>();
-  for (const s of SPECIES) totalByEco.set(s.ecosystem, (totalByEco.get(s.ecosystem) ?? 0) + 1);
 
   const overallHealth = Math.round((new Set(obs.map((o) => o.speciesId)).size / SPECIES.length) * 100);
   const latestDate = obs[0]?.observedAt.slice(0, 10);
@@ -77,25 +59,6 @@ export default async function HomePage() {
           <Tile value={stats.speciesCount} unit="種" label="登録種数" bg="bg-teal-50" num="text-teal-600" />
           <Tile value={overallHealth} unit="%" label="健康度" bg="bg-lime-50" num="text-lime-600" />
         </div>
-
-        {/* Ecosystem health */}
-        <section className="card3d rounded-3xl p-5">
-          <h2 className="font-semibold text-neutral-800 mb-4">エコシステムの健康度</h2>
-          <div className="space-y-3.5">
-            {ECOS.map((e) => {
-              const pct = Math.round(((discoveredByEco.get(e.key)?.size ?? 0) / (totalByEco.get(e.key) ?? 1)) * 100);
-              return (
-                <div key={e.key} className="flex items-center gap-3">
-                  <span className="w-20 text-sm text-neutral-500 flex items-center gap-1.5"><e.Icon className={e.text} size={15} /> {e.label}</span>
-                  <div className="flex-1 h-2.5 bg-neutral-100 rounded-full overflow-hidden well3d">
-                    <div className={`h-full rounded-full ${e.bar} shadow-[0_1px_0_rgba(255,255,255,0.5)]`} style={{ width: `${pct}%` }} />
-                  </div>
-                  <span className={`w-9 text-right text-sm font-bold ${e.text}`}>{pct}%</span>
-                </div>
-              );
-            })}
-          </div>
-        </section>
 
         {/* Rare alert */}
         <section className="relative overflow-hidden bg-gradient-to-r from-gold-400 to-gold-500 rounded-3xl tile3d p-4 flex items-center gap-4 text-white">

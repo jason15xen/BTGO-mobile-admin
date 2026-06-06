@@ -29,21 +29,36 @@ export default function PyramidClient({
 
   return (
     <div>
-      <PageHero title="生態系ピラミッド" subtitle="発見した生き物で食物連鎖を完成させよう" gradient={`${ECO_THEME[eco].gradient}`} />
+      <PageHero
+        title="生態系ピラミッド"
+        subtitle="発見した生き物で食物連鎖を完成させよう"
+        gradient={`${ECO_THEME[eco].gradient}`}
+        bgImage={`/eco/${eco}.webp`}
+      />
       <Screen>
-        {/* Ecosystem tabs */}
-        <div className="relative z-10 flex gap-2 float3d rounded-2xl p-1 -mt-9">
+        {/* Ecosystem tabs — each uses its real scenery as the background */}
+        <div className="relative z-10 flex gap-2 -mt-9">
           {TABS.map((t) => {
             const Icon = ECO_THEME[t.key].Icon;
+            const activeTab = eco === t.key;
             return (
               <button
                 key={t.key}
                 onClick={() => setEco(t.key)}
-                className={`flex-1 py-2 rounded-xl text-sm font-semibold transition-colors flex items-center justify-center gap-1.5 ${
-                  eco === t.key ? `bg-gradient-to-r ${ECO_THEME[t.key].gradient} text-white shadow` : "text-neutral-500"
+                className={`relative flex-1 h-14 rounded-2xl overflow-hidden ring-2 transition-all ${
+                  activeTab ? "ring-white shadow-md scale-[1.03]" : "ring-white/40 opacity-90"
                 }`}
               >
-                <Icon size={15} /> {ECOSYSTEM_LABEL[t.key]}
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={`/eco/${t.key}.webp`} alt="" className="absolute inset-0 w-full h-full object-cover" />
+                <div
+                  className={`absolute inset-0 ${
+                    activeTab ? `bg-gradient-to-br ${ECO_THEME[t.key].gradient} opacity-55` : "bg-black/45"
+                  }`}
+                />
+                <span className="relative h-full flex items-center justify-center gap-1.5 text-white font-bold text-sm drop-shadow">
+                  <Icon size={15} /> {ECOSYSTEM_LABEL[t.key]}
+                </span>
               </button>
             );
           })}
