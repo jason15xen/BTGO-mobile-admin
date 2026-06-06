@@ -19,8 +19,8 @@ export default function TopNav() {
           <span className="font-bold text-[17px] tracking-tight text-neutral-900">BTGO</span>
         </Link>
         <Link
-          href="/register"
-          title="アカウント"
+          href="/profile"
+          title="マイページ"
           className="w-9 h-9 rounded-full bg-neutral-100 hover:bg-neutral-200 flex items-center justify-center text-neutral-600 transition-colors"
         >
           <FiUser size={18} />

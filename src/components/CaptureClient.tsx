@@ -110,13 +110,13 @@ export default function CaptureClient() {
     setProgress(0);
     const iv = setInterval(() => {
       setProgress((p) => {
-        if (p >= 100) {
+        const next = Math.min(p + 7, 100);
+        if (next >= 100) {
           clearInterval(iv);
           setSubject(randomSpecies());
           setPhase("result");
-          return 100;
         }
-        return p + 7;
+        return next;
       });
     }, 80);
     return () => clearInterval(iv);
@@ -324,7 +324,7 @@ export default function CaptureClient() {
           <div className="card3d rounded-2xl p-4 flex items-center justify-around">
             <Reward label="経験値" value={`+${rw.xp}`} cls="text-forest-600" />
             <div className="w-px h-8 bg-neutral-100" />
-            <Reward label="ポイント" value={`+${rw.points}`} cls="text-gold-500" />
+            <Reward label="B-mile" value={`+${rw.points}`} cls="text-gold-500" />
             {subject.invasive && (
               <>
                 <div className="w-px h-8 bg-neutral-100" />
@@ -392,7 +392,7 @@ export default function CaptureClient() {
         </div>
 
         <div className="grid grid-cols-3 gap-3">
-          <Stat label="獲得ポイント" value={`+${reward?.points ?? 0}`} />
+          <Stat label="獲得B-mile" value={`+${reward?.points ?? 0}`} />
           <Stat label="獲得XP" value={`+${reward?.xp ?? 0}`} />
           <Stat label="登録種数" value={`${discovered.size}`} />
         </div>

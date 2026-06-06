@@ -70,3 +70,37 @@ export function computeUserStats(allObs: Observation[]): UserStats {
 export function myObservations(allObs: Observation[]): Observation[] {
   return allObs.filter((o) => o.userId === DEMO_USER.id);
 }
+
+export interface Discovery {
+  count: number;
+  /** earliest observation date (when first discovered) */
+  firstFound: string;
+  /** most recent find location */
+  area: string;
+  lat: number;
+  lng: number;
+}
+
+/** Per-species discovery info for the current user (date, location, count). */
+export function discoveriesByUser(allObs: Observation[]): Record<string, Discovery> {
+  const map: Record<string, Discovery> = {};
+  const latest: Record<string, string> = {};
+  for (const o of allObs) {
+    if (o.userId !== DEMO_USER.id) continue;
+    const d = map[o.speciesId];
+    if (!d) {
+      map[o.speciesId] = { count: 1, firstFound: o.observedAt, area: o.area, lat: o.lat, lng: o.lng };
+      latest[o.speciesId] = o.observedAt;
+    } else {
+      d.count++;
+      if (o.observedAt < d.firstFound) d.firstFound = o.observedAt;
+      if (o.observedAt > latest[o.speciesId]) {
+        latest[o.speciesId] = o.observedAt;
+        d.area = o.area;
+        d.lat = o.lat;
+        d.lng = o.lng;
+      }
+    }
+  }
+  return map;
+}
