@@ -81,18 +81,18 @@ export default function EncyclopediaClient({ discoveries }: { discoveries: Recor
               <button
                 key={s.id}
                 onClick={() => setSelected(s)}
-                className="text-left rounded-2xl overflow-hidden bg-white border border-neutral-100 shadow-soft active:scale-[0.98] transition-all"
+                className="text-left rounded-2xl p-1.5 bg-white border border-neutral-100 shadow-soft active:scale-[0.98] transition-all"
               >
-                <div className="relative aspect-square">
-                  <SpeciesImage speciesId={s.id} emoji={s.emoji} alt={s.nameJa} className="w-full h-full" />
-                  <span className={`absolute top-2 left-2 text-[10px] font-bold px-2 py-0.5 rounded-full shadow ${rarityBadge(s.rarity)}`}>
+                <div className="relative aspect-square rounded-xl overflow-hidden">
+                  <SpeciesImage speciesId={s.id} emoji={s.emoji} alt={s.nameJa} className="w-full h-full" rounded="rounded-xl" />
+                  <span className={`absolute top-1.5 left-1.5 text-[10px] font-bold px-2 py-0.5 rounded-full shadow ${rarityBadge(s.rarity)}`}>
                     {RARITY_LABEL[s.rarity]}
                   </span>
                   {s.invasive && (
-                    <span className="absolute top-2 right-2 text-[10px] font-bold px-2 py-0.5 rounded-full bg-coral-500 text-white shadow">外来種</span>
+                    <span className="absolute top-1.5 right-1.5 text-[10px] font-bold px-2 py-0.5 rounded-full bg-coral-500 text-white shadow">外来種</span>
                   )}
                 </div>
-                <div className="p-3">
+                <div className="px-1 pt-2 pb-0.5">
                   <div className="font-semibold text-neutral-800 text-sm truncate">{s.nameJa}</div>
                   <div className="flex items-center justify-between mt-0.5">
                     <span className="text-[11px] text-neutral-400 truncate">{s.category}</span>
