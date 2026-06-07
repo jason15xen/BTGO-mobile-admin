@@ -9,16 +9,15 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 
 // (id, ecosystem, trophicLevel) — must match src/data/species.ts
 const SPECIES = [
-  ["t-hawk", "terrestrial", 4], ["t-fox", "terrestrial", 3], ["t-tanuki", "terrestrial", 3],
-  ["t-kingfisher", "terrestrial", 3], ["t-mantis", "terrestrial", 3], ["t-stagbeetle", "terrestrial", 2],
-  ["t-monarch", "terrestrial", 2], ["t-snail", "terrestrial", 2], ["t-bee", "terrestrial", 2],
-  ["t-sakura", "terrestrial", 1], ["t-fern", "terrestrial", 1], ["t-bamboo", "terrestrial", 1],
+  ["t-hawk", "terrestrial", 4], ["t-fox", "terrestrial", 3], ["t-kingfisher", "terrestrial", 3],
+  ["t-stagbeetle", "terrestrial", 2], ["t-monarch", "terrestrial", 2], ["t-bee", "terrestrial", 2],
+  ["t-sakura", "terrestrial", 1], ["t-fern", "terrestrial", 1], ["t-bamboo", "terrestrial", 1], ["t-grass", "terrestrial", 1],
   ["f-otter", "freshwater", 4], ["f-heron", "freshwater", 3], ["f-trout", "freshwater", 3],
-  ["f-bass", "freshwater", 3], ["f-crayfish", "freshwater", 2], ["f-frog", "freshwater", 2],
-  ["f-daphnia", "freshwater", 2], ["f-lotus", "freshwater", 1], ["f-algae", "freshwater", 1],
-  ["m-dolphin", "marine", 4], ["m-tuna", "marine", 4], ["m-gull", "marine", 3],
-  ["m-mackerel", "marine", 3], ["m-crab", "marine", 2], ["m-krill", "marine", 2],
-  ["m-seaweed", "marine", 1], ["m-plankton", "marine", 1],
+  ["f-crayfish", "freshwater", 2], ["f-frog", "freshwater", 2], ["f-daphnia", "freshwater", 2],
+  ["f-lotus", "freshwater", 1], ["f-algae", "freshwater", 1], ["f-reed", "freshwater", 1], ["f-duckweed", "freshwater", 1],
+  ["m-dolphin", "marine", 4], ["m-gull", "marine", 3], ["m-mackerel", "marine", 3],
+  ["m-crab", "marine", 2], ["m-krill", "marine", 2], ["m-tuna", "marine", 2],
+  ["m-seaweed", "marine", 1], ["m-plankton", "marine", 1], ["m-amamo", "marine", 1], ["m-aoasa", "marine", 1],
 ].map(([id, ecosystem, trophicLevel]) => ({ id, ecosystem, trophicLevel }));
 
 function mulberry32(seed) {
@@ -89,10 +88,10 @@ const DEMO = [
   ["t-monarch", "白糸の滝", 35.323, 138.596, 0, 2],
   ["t-kingfisher", "河口湖", 35.518, 138.755, 0, 1],
   ["t-stagbeetle", "青木ヶ原樹海", 35.471, 138.621, 1, 3],
-  ["t-tanuki", "富士山五合目", 35.361, 138.731, 2, 1],
+  ["t-fox", "富士山五合目", 35.361, 138.731, 2, 1],
   ["t-bee", "富士市街", 35.162, 138.677, 3, 4],
-  ["t-mantis", "山中湖", 35.419, 138.873, 4, 2],
-  ["t-snail", "白糸の滝", 35.322, 138.594, 5, 2],
+  ["t-grass", "山中湖", 35.419, 138.873, 4, 2],
+  ["t-bamboo", "白糸の滝", 35.322, 138.594, 5, 2],
   ["t-sakura", "河口湖", 35.516, 138.753, 6, 1],
   ["t-fern", "青木ヶ原樹海", 35.469, 138.619, 8, 1],
   ["t-hawk", "富士山五合目", 35.359, 138.729, 10, 1],

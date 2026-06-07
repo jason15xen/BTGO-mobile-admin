@@ -84,19 +84,19 @@ export default function PyramidClient({
         </div>
 
         {/* Pyramid */}
-        <Card>
+        <Card className="!p-4 sm:!p-5">
           {/* completion */}
-          <div className="flex items-center justify-between mb-3">
+          <div className="flex items-center justify-between mb-3 px-1">
             <span className="text-sm font-semibold text-neutral-700">{ECOSYSTEM_LABEL[eco]}の食物連鎖</span>
             <span className={`text-sm font-bold ${ECO_THEME[eco].text}`}>{found}/{total} 種 ・ {pct}%</span>
           </div>
-          <div className="h-1.5 mb-4 bg-neutral-100 rounded-full overflow-hidden well3d">
+          <div className="h-1.5 mb-4 mx-1 bg-neutral-100 rounded-full overflow-hidden well3d">
             <div className={`h-full rounded-full ${ECO_THEME[eco].solid}`} style={{ width: `${pct}%` }} />
           </div>
 
           <Pyramid ecosystem={eco} discovered={set} onSelect={(s, f) => setSel({ s, found: f })} />
 
-          <p className="mt-4 text-center text-xs text-neutral-400">生き物をタップして詳細を見る</p>
+          <p className="mt-3 text-center text-xs text-neutral-400">生き物をタップして詳細を見る</p>
         </Card>
       </Screen>
 
@@ -127,9 +127,9 @@ function HelpSheet({ onClose }: { onClose: () => void }) {
           </div>
         </div>
         <div className="px-6 pb-7 space-y-3">
-          <HelpRow icon="🔺" title="食物連鎖を完成させよう" body="生き物を発見すると、栄養段階に合わせてピラミッドに並びます。" />
+          <HelpRow icon="🔺" title="食物連鎖を完成させよう" body="各生態系に10種類（1→2→3→4段）の枠があります。発見した生き物がピラミッドに並びます。" />
           <HelpRow icon="👆" title="タップで詳細" body="並んだ生き物をタップすると、生息地・食べ物などの情報が見られます。" />
-          <HelpRow icon="❓" title="？はヒント" body="空いている枠（？）をタップすると、その生き物を探すヒントが表示されます。" />
+          <HelpRow icon="❓" title="シルエットはヒント" body="まだ発見していない枠をタップすると、その生き物を探すヒントが表示されます。" />
           <HelpRow icon="🏆" title="コンプリートボーナス" body="すべての枠をうめると「ピラミッドコンプリート」ボーナス +20 B-mile がもらえます。" />
           <button onClick={onClose} className="w-full mt-2 bg-forest-600 text-white font-bold rounded-xl py-3">とじる</button>
         </div>
