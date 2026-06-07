@@ -3,6 +3,9 @@ import { SPECIES_BY_ID } from "@/data/species";
 
 export const DEMO_USER = { id: "u-demo", name: "あなた" };
 
+/** PoC demo balance — lets you test coupon purchases. */
+export const DEMO_B_MILE_BALANCE = 1_000_000;
+
 export const XP_PER_LEVEL = 1000;
 
 // Title for each level — "森の守り人" (Forest Guardian) etc.
@@ -58,7 +61,7 @@ export function computeUserStats(allObs: Observation[]): UserStats {
   return {
     discoveries: mine.length,
     speciesCount: species.size,
-    points,
+    points: Math.max(points, DEMO_B_MILE_BALANCE),
     xp,
     level,
     title: levelTitle(level),

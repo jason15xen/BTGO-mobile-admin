@@ -6,6 +6,13 @@ import { GiLion, GiWolfHead, GiRabbit, GiHighGrass } from "react-icons/gi";
 import SpeciesImage from "@/components/SpeciesImage";
 import PyramidTetrahedron from "@/components/PyramidTetrahedron";
 
+/** Strong linear gradient per ecosystem — darker top, lighter bottom. */
+const ECO_PYRAMID_BG: Record<Ecosystem, string> = {
+  terrestrial: "bg-gradient-to-b from-forest-500 via-forest-100 to-white",
+  freshwater: "bg-gradient-to-b from-teal-600 via-teal-100 to-white",
+  marine: "bg-gradient-to-b from-lime-600 via-lime-100 to-white",
+};
+
 const TROPHIC_LABEL: Record<number, string> = {
   4: "高次消費者",
   3: "中次消費者",
@@ -149,7 +156,7 @@ export default function Pyramid({ ecosystem, discovered, highlightId, compact, o
   }
 
   return (
-    <div className="relative overflow-hidden rounded-2xl bg-gradient-to-b from-forest-50/50 via-slate-50/80 to-white ring-1 ring-forest-200/25 px-2 py-4 sm:px-6 sm:py-8">
+    <div className={`relative overflow-hidden rounded-2xl ${ECO_PYRAMID_BG[ecosystem]} ring-1 ring-forest-200/25 px-2 py-4 sm:px-6 sm:py-8 transition-colors duration-300`}>
       <PyramidTetrahedron ecosystem={ecosystem} />
 
       {/* Same trapezoid pyramid on all screens — fixed aspect ratio on mobile */}

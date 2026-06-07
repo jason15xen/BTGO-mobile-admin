@@ -25,12 +25,6 @@ export default function PyramidTetrahedron({ ecosystem }: { ecosystem: Ecosystem
 
   return (
     <div className="pointer-events-none absolute inset-0 overflow-hidden" aria-hidden>
-      <div
-        className="absolute inset-0"
-        style={{
-          background: `radial-gradient(ellipse 80% 60% at 50% 55%, ${FACE_COLOR[ecosystem]} 0%, transparent 72%)`,
-        }}
-      />
       {/* 3D tetrahedron only on larger screens — too busy on mobile */}
       <div className="pyramid-scene absolute inset-0 hidden sm:flex">
         <div

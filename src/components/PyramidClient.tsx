@@ -13,11 +13,10 @@ import type { Ecosystem, Species } from "@/lib/types";
 
 const TABS: { key: Ecosystem }[] = [{ key: "terrestrial" }, { key: "freshwater" }, { key: "marine" }];
 
-// Bright accent per ecosystem for the active segment's border + icon/text.
-const ACTIVE_HEX: Record<Ecosystem, string> = {
-  terrestrial: "#bef264", // lime
-  freshwater: "#5eead4", // aqua
-  marine: "#fde047", // yellow
+const ACTIVE_TAB_BG: Record<Ecosystem, string> = {
+  terrestrial: "bg-forest-200",
+  freshwater: "bg-teal-100",
+  marine: "bg-lime-100",
 };
 
 export default function PyramidClient({
@@ -56,28 +55,21 @@ export default function PyramidClient({
         }
       />
       <Screen>
-        {/* Ecosystem segmented control — one connected series */}
-        <div className="relative z-10 -mt-6 flex rounded-2xl overflow-hidden ring-1 ring-black/5 shadow-md">
-          {TABS.map((t, i) => {
+        {/* Ecosystem segmented control */}
+        <div className="relative z-10 -mt-6 flex gap-1 rounded-2xl bg-white p-1 ring-1 ring-black/5 shadow-md">
+          {TABS.map((t) => {
             const Icon = ECO_THEME[t.key].Icon;
             const activeTab = eco === t.key;
             return (
               <button
                 key={t.key}
                 onClick={() => setEco(t.key)}
-                className={`relative flex-1 h-12 overflow-hidden ${i > 0 ? "border-l border-white/25" : ""}`}
+                className={`flex-1 h-11 rounded-xl flex items-center justify-center gap-1.5 text-sm font-semibold text-neutral-900 transition-colors ${
+                  activeTab ? ACTIVE_TAB_BG[t.key] : "bg-white hover:bg-neutral-50"
+                }`}
               >
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={`/eco/${t.key}.webp`} alt="" className="absolute inset-0 w-full h-full object-cover" />
-                <div className={`absolute inset-0 bg-gradient-to-br ${ECO_THEME[t.key].gradient} opacity-55`} />
-                <span
-                  className={`relative h-full flex items-center justify-center gap-1.5 drop-shadow transition-all ${
-                    activeTab ? "text-[15px] font-extrabold italic" : "text-xs font-semibold text-white/55"
-                  }`}
-                  style={activeTab ? { color: ACTIVE_HEX[t.key] } : undefined}
-                >
-                  <Icon size={activeTab ? 18 : 14} /> {ECOSYSTEM_LABEL[t.key]}
-                </span>
+                <Icon size={16} />
+                {ECOSYSTEM_LABEL[t.key]}
               </button>
             );
           })}

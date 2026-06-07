@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { FiCamera } from "react-icons/fi";
-import { LuLeaf, LuSparkles } from "react-icons/lu";
-import SpeciesImage from "@/components/SpeciesImage";
+import { LuLeaf } from "react-icons/lu";
+import HomeRareAlert from "@/components/HomeRareAlert";
 import UserGreeting from "@/components/UserGreeting";
 import { readObservations } from "@/lib/dataStore";
 import { computeUserStats } from "@/lib/game";
@@ -16,6 +16,15 @@ export default async function HomePage() {
   const latestDate = obs[0]?.observedAt.slice(0, 10);
   const todaySpecies = new Set(obs.filter((o) => o.observedAt.slice(0, 10) === latestDate).map((o) => o.speciesId)).size;
   const rare = SPECIES.find((s) => s.rarity === "legendary") ?? SPECIES[0];
+  const rareObs = obs.find((o) => o.speciesId === rare.id);
+  const rareNews = {
+    speciesId: rare.id,
+    nameJa: rare.nameJa,
+    nameSci: rare.nameSci,
+    emoji: rare.emoji,
+    area: rareObs?.area ?? "富士山麓",
+    observedAt: rareObs?.observedAt ?? obs[0]?.observedAt ?? new Date().toISOString(),
+  };
 
   return (
     <div className="flex flex-col min-h-full px-5 pt-5 pb-5 gap-4">
@@ -45,15 +54,16 @@ export default async function HomePage() {
         <img src="/eco/terrestrial.webp" alt="" className="absolute inset-0 w-full h-full object-cover object-center" aria-hidden />
         <div className="absolute inset-0 bg-gradient-to-t from-black/35 via-transparent to-transparent" aria-hidden />
 
-        <Link
-          href="/capture"
-          className="relative flex flex-1 flex-col items-center justify-center gap-2.5 py-8 active:scale-[0.99] transition-transform"
-        >
-          <span className="w-[68px] h-[68px] rounded-full bg-forest-600 ring-4 ring-white/40 flex items-center justify-center text-white shadow-glow">
+        <div className="relative flex flex-1 flex-col items-center justify-center gap-2.5 py-8">
+          <Link
+            href="/capture"
+            aria-label="生き物を見つける"
+            className="w-[68px] h-[68px] rounded-full bg-forest-600 ring-4 ring-white/40 flex items-center justify-center text-white shadow-glow active:scale-95 transition-transform"
+          >
             <FiCamera size={30} />
-          </span>
-          <span className="text-white font-bold text-lg drop-shadow">生き物を見つける</span>
-        </Link>
+          </Link>
+          <span className="text-white font-bold text-lg drop-shadow pointer-events-none select-none">生き物を見つける</span>
+        </div>
 
         <div className="relative grid grid-cols-2 gap-3 p-4">
           <div className="card3d rounded-2xl px-3.5 py-3">
@@ -67,16 +77,7 @@ export default async function HomePage() {
             <div className="text-[11px] text-neutral-400 mt-1">みんなの発見</div>
           </div>
 
-          <Link href="/capture" className="card3d rounded-2xl px-3.5 py-3">
-            <div className="text-xs font-semibold text-gold-600 flex items-center gap-1"><LuSparkles size={12} /> レアアラート</div>
-            <div className="flex items-center gap-2 mt-1">
-              <SpeciesImage speciesId={rare.id} emoji={rare.emoji} alt={rare.nameJa} className="w-9 h-9 shrink-0" rounded="rounded-md" />
-              <div className="min-w-0">
-                <div className="text-sm font-bold text-neutral-800 leading-tight truncate">{rare.nameJa}</div>
-                <div className="text-[11px] text-neutral-400">が出没しています！</div>
-              </div>
-            </div>
-          </Link>
+          <HomeRareAlert news={rareNews} />
         </div>
       </section>
     </div>

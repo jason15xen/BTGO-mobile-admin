@@ -4,8 +4,9 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import type { IconType } from "react-icons";
 import { FiUser, FiCamera, FiLogOut, FiEdit2 } from "react-icons/fi";
-import { LuFootprints, LuBird } from "react-icons/lu";
+import { LuFootprints, LuBird, LuTicket } from "react-icons/lu";
 import type { UserStats } from "@/lib/game";
+import { loadBalance, loadOwnedCoupons, type OwnedCoupon } from "@/lib/wallet";
 import SpeciesImage from "@/components/SpeciesImage";
 import { PageHero, Screen, Card } from "@/components/ui";
 
@@ -23,8 +24,12 @@ interface Recent {
   date: string;
 }
 
+const fmtDate = (iso: string) => iso.slice(0, 10).replace(/-/g, "/");
+
 export default function ProfileClient({ stats, recent }: { stats: UserStats; recent: Recent[] }) {
   const [account, setAccount] = useState<{ name?: string; email?: string; region?: string } | null>(null);
+  const [coupons, setCoupons] = useState<OwnedCoupon[]>([]);
+  const [balance, setBalance] = useState(stats.points);
 
   useEffect(() => {
     try {
@@ -33,7 +38,9 @@ export default function ProfileClient({ stats, recent }: { stats: UserStats; rec
     } catch {
       /* ignore */
     }
-  }, []);
+    setCoupons(loadOwnedCoupons());
+    setBalance(loadBalance(stats.points));
+  }, [stats.points]);
 
   function signOut() {
     try {
@@ -67,7 +74,7 @@ export default function ProfileClient({ stats, recent }: { stats: UserStats; rec
           <div className="grid grid-cols-3 gap-2 mt-4">
             <Stat label="発見数" value={stats.discoveries} />
             <Stat label="登録種" value={stats.speciesCount} />
-            <Stat label="B-mile" value={stats.points} />
+            <Stat label="B-mile" value={balance} />
           </div>
 
           {/* auth actions */}
@@ -86,6 +93,30 @@ export default function ProfileClient({ stats, recent }: { stats: UserStats; rec
             </Link>
           </div>
         </Card>
+
+        {/* Owned coupons */}
+        <div>
+          <h2 className="font-bold text-neutral-800 mb-2">所持クーポン</h2>
+          <div className="space-y-2">
+            {coupons.length === 0 ? (
+              <p className="text-sm text-neutral-400">まだクーポンがありません。報酬ページで交換しよう。</p>
+            ) : (
+              coupons.map((c) => (
+                <div key={c.id} className="card3d rounded-2xl p-3.5 flex items-center gap-3">
+                  <span className="w-11 h-11 rounded-xl bg-gold-50 text-gold-600 flex items-center justify-center shrink-0">
+                    <LuTicket size={20} />
+                  </span>
+                  <div className="flex-1 min-w-0">
+                    <div className="text-sm font-semibold text-neutral-800 truncate">{c.label}</div>
+                    <div className="text-[11px] text-neutral-400 mt-0.5">{c.storeName}</div>
+                    <div className="text-[11px] text-neutral-400">{fmtDate(c.purchasedAt)} に取得</div>
+                  </div>
+                  <span className="text-xs font-bold text-forest-600 shrink-0">{c.cost.toLocaleString()} B-mile</span>
+                </div>
+              ))
+            )}
+          </div>
+        </div>
 
         {/* Badges */}
         <div>
