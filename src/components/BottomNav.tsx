@@ -30,9 +30,9 @@ export default function BottomNav() {
       <button
         onClick={() => router.push("/capture")}
         aria-label="撮影"
-        className="-mt-7 w-[58px] h-[58px] rounded-full bg-gradient-to-b from-forest-500 to-forest-700 active:scale-90 orb3d ring-4 ring-white flex items-center justify-center text-white transition-transform animate-float celebrate-ring"
+        className="-mt-7 w-[58px] h-[58px] rounded-full bg-gradient-to-b from-forest-500 to-forest-700 active:scale-90 orb3d ring-4 ring-white flex items-center justify-center text-white transition-transform"
       >
-        <FiCamera size={24} className="animate-bounceSoft" />
+        <FiCamera size={24} className="shrink-0" aria-hidden />
       </button>
 
       {TABS.slice(2).map((t) => (

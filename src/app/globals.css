@@ -314,6 +314,71 @@ body {
   .celebrate-ring {
     animation: pulseGlow 1.8s ease-out infinite;
   }
+
+  /* Stars eject from tile perimeter — new species */
+  .species-starlight__halo {
+    position: absolute;
+    inset: 2px;
+    border-radius: 0.85rem;
+    background: radial-gradient(circle, rgba(251, 191, 36, 0.35) 0%, transparent 72%);
+    animation: btgo-starlight-twinkle 2s ease-in-out infinite;
+    pointer-events: none;
+  }
+
+  .species-star-particle {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    width: 5px;
+    height: 5px;
+    margin: -2.5px;
+    background: #fef9c3;
+    clip-path: polygon(
+      50% 0%,
+      61% 35%,
+      98% 35%,
+      68% 57%,
+      79% 91%,
+      50% 70%,
+      21% 91%,
+      32% 57%,
+      2% 35%,
+      39% 35%
+    );
+    box-shadow: 0 0 4px #fbbf24, 0 0 8px #fffbeb;
+    pointer-events: none;
+    opacity: 0;
+    transform: rotate(var(--star-angle, 0deg)) translateY(-1rem) scale(0.15);
+    animation: btgo-star-eject 1.6s ease-out var(--star-delay, 0s) infinite;
+  }
+
+  .species-star-particle--bright {
+    width: 7px;
+    height: 7px;
+    margin: -3.5px;
+    background: #fff;
+    box-shadow: 0 0 6px #fcd34d, 0 0 12px #fbbf24;
+  }
+}
+
+@keyframes btgo-starlight-twinkle {
+  0%, 100% { opacity: 0.45; }
+  50% { opacity: 1; }
+}
+
+@keyframes btgo-star-eject {
+  0% {
+    opacity: 0;
+    transform: rotate(var(--star-angle, 0deg)) translateY(-0.95rem) scale(0.15);
+  }
+  12% {
+    opacity: 1;
+    transform: rotate(var(--star-angle, 0deg)) translateY(-1.05rem) scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: rotate(var(--star-angle, 0deg)) translateY(-2.35rem) scale(0.35);
+  }
 }
 
 @keyframes btgo-fade-in {
@@ -343,5 +408,11 @@ body {
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
+  }
+
+  .species-starlight__halo,
+  .species-star-particle {
+    animation: none !important;
+    opacity: 0.6;
   }
 }

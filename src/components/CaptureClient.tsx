@@ -394,7 +394,7 @@ export default function CaptureClient() {
       <div className="px-5 -mt-4 space-y-4">
         <div className="card3d rounded-2xl p-4 opacity-0-start animate-scaleIn stagger-3">
           <div className="flex items-center gap-3 mb-3">
-            <SpeciesImage speciesId={subject.id} emoji={subject.emoji} alt={subject.nameJa} className="w-12 h-12" rounded="rounded-full ring-2 ring-gold-400" />
+            <SpeciesImage speciesId={subject.id} emoji={subject.emoji} alt={subject.nameJa} className="w-12 h-12 ring-2 ring-gold-400" rounded="rounded-full" />
             <div>
               <div className="font-bold text-neutral-800">{subject.nameJa}</div>
               <div className="text-xs text-neutral-400">{ECOSYSTEM_LABEL[subject.ecosystem]} ピラミッドに追加{isNew && " ・ 新種！"}</div>
