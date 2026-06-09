@@ -44,11 +44,13 @@ const TIER_TOP: Record<number, [number, number]> = {
 };
 
 const TIER_GAP: Record<number, { full: string; embedded: string }> = {
-  4: { full: "gap-2", embedded: "gap-1" },
-  3: { full: "gap-2.5", embedded: "gap-1.5" },
-  2: { full: "gap-3", embedded: "gap-1.5" },
-  1: { full: "gap-2.5 sm:gap-3.5", embedded: "gap-1.5" },
+  4: { full: "gap-2", embedded: "gap-2" },
+  3: { full: "gap-2.5", embedded: "gap-2" },
+  2: { full: "gap-3", embedded: "gap-2.5" },
+  1: { full: "gap-2.5 sm:gap-3.5", embedded: "gap-2.5" },
 };
+
+const TIER_STAGGER = ["stagger-1", "stagger-2", "stagger-3", "stagger-4"] as const;
 
 const TIER_PX: Record<number, { full: string; embedded: string }> = {
   4: { full: "px-6 sm:px-9", embedded: "px-5" },
@@ -56,6 +58,36 @@ const TIER_PX: Record<number, { full: string; embedded: string }> = {
   2: { full: "px-8 sm:px-11", embedded: "px-4" },
   1: { full: "px-7 sm:px-14", embedded: "px-3" },
 };
+
+const STAR_BURST_COUNT = 28;
+
+/** Stars continuously eject from the tile perimeter. */
+function StarlightFrame({ children }: { children: React.ReactNode }) {
+  return (
+    <div className="species-starlight relative flex items-center justify-center w-[3.5rem] h-[3.5rem] shrink-0">
+      <div className="species-starlight__halo" aria-hidden />
+      <div className="absolute inset-0 overflow-visible pointer-events-none" aria-hidden>
+        {Array.from({ length: STAR_BURST_COUNT }, (_, i) => {
+          const angle = (360 / STAR_BURST_COUNT) * i;
+          const delay = (i / STAR_BURST_COUNT) * 1.6;
+          return (
+            <span
+              key={i}
+              className={`species-star-particle${i % 4 === 0 ? " species-star-particle--bright" : ""}`}
+              style={
+                {
+                  "--star-angle": `${angle}deg`,
+                  "--star-delay": `${delay}s`,
+                } as React.CSSProperties
+              }
+            />
+          );
+        })}
+      </div>
+      <div className="relative z-10">{children}</div>
+    </div>
+  );
+}
 
 interface PyramidProps {
   ecosystem: Ecosystem;
@@ -85,7 +117,7 @@ function SpeciesTile({
 }) {
   const KindIcon = TROPHIC_ICON[level];
   const tile = embedded
-    ? "w-9 h-9 rounded-lg"
+    ? "w-11 h-11 rounded-lg"
     : "w-[10vw] max-w-12 h-[10vw] max-h-12 min-w-9 min-h-9 rounded-xl sm:w-12 sm:h-12";
 
   const inner = (
@@ -100,12 +132,12 @@ function SpeciesTile({
         />
       ) : (
         <span className="w-full h-full flex items-center justify-center text-neutral-400/70">
-          <KindIcon size={embedded ? 14 : 20} />
+          <KindIcon size={embedded ? 18 : 20} />
         </span>
       )}
       {isNew && found && (
-        <span className="absolute -top-0.5 -right-0.5 text-[7px] font-bold bg-forest-600 text-white px-1 py-px rounded-full shadow leading-none">
-          新！
+        <span className="absolute top-0.5 right-0.5 text-[7px] font-bold bg-gold-500 text-white px-1 py-px rounded-full leading-none">
+          新
         </span>
       )}
     </>
@@ -116,20 +148,24 @@ function SpeciesTile({
   } ${
     found
       ? isNew
-        ? "ring-2 ring-gold-400 shadow-[0_4px_12px_rgba(0,0,0,0.22)]"
+        ? "ring-[3px] ring-amber-400 shadow-[0_0_14px_3px_rgba(251,191,36,0.75)]"
         : "ring-1 ring-white shadow-[0_2px_8px_rgba(0,0,0,0.16)]"
       : "bg-neutral-200/75 ring-1 ring-neutral-300/45 shadow-inset"
   } overflow-hidden`;
 
-  if (onSelect) {
-    return (
-      <button type="button" onClick={() => onSelect(s, found)} aria-label={found ? s.nameJa : `未発見の${label}`} className={cls}>
-        {inner}
-      </button>
-    );
+  const tileEl = onSelect ? (
+    <button type="button" onClick={() => onSelect(s, found)} aria-label={found ? s.nameJa : `未発見の${label}`} className={cls}>
+      {inner}
+    </button>
+  ) : (
+    <div className={cls}>{inner}</div>
+  );
+
+  if (isNew && found) {
+    return <StarlightFrame>{tileEl}</StarlightFrame>;
   }
 
-  return <div className={cls}>{inner}</div>;
+  return tileEl;
 }
 
 export default function Pyramid({ ecosystem, discovered, highlightId, embedded, onSelect }: PyramidProps) {
@@ -139,12 +175,12 @@ export default function Pyramid({ ecosystem, discovered, highlightId, embedded, 
   return (
     <div
       className={`relative overflow-hidden rounded-2xl ${ECO_PYRAMID_BG[ecosystem]} ring-1 ring-forest-200/25 transition-colors duration-300 ${
-        embedded ? "px-1 py-2" : "px-2 py-4 sm:px-6 sm:py-8"
+        embedded ? "px-2 py-3" : "px-2 py-4 sm:px-6 sm:py-8"
       }`}
     >
       {!embedded && <PyramidTetrahedron ecosystem={ecosystem} />}
 
-      <div className={`relative z-10 flex w-full flex-col ${embedded ? "" : "max-sm:aspect-[5/7]"}`}>
+      <div className={`relative z-10 flex w-full flex-col ${embedded ? "aspect-[5/7] min-h-[300px]" : "max-sm:aspect-[5/7]"}`}>
         {levels.map((level, index) => {
           const cells = inEco.filter((s) => s.trophicLevel === level).slice(0, PYRAMID_SLOTS[level]);
           const label = TROPHIC_LABEL[level];
@@ -155,7 +191,7 @@ export default function Pyramid({ ecosystem, discovered, highlightId, embedded, 
           return (
             <div
               key={level}
-              className={`relative w-full ${embedded ? "" : "max-sm:flex-1 max-sm:min-h-0"}`}
+              className={`relative w-full opacity-0-start animate-fadeUp ${TIER_STAGGER[index]} ${embedded ? "flex-1 min-h-0" : "max-sm:flex-1 max-sm:min-h-0"}`}
               style={{ marginTop: index > 0 ? 1 : 0 }}
             >
               {index > 0 && (
@@ -179,17 +215,17 @@ export default function Pyramid({ ecosystem, discovered, highlightId, embedded, 
 
               <div
                 className={`bg-gradient-to-b from-white via-white to-slate-50/90 shadow-[inset_0_1px_0_rgba(255,255,255,0.95)] ring-1 ring-forest-200/35 ${
-                  embedded ? "" : "max-sm:h-full max-sm:flex max-sm:flex-col max-sm:justify-center"
+                  embedded ? "h-full flex flex-col justify-center" : "max-sm:h-full max-sm:flex max-sm:flex-col max-sm:justify-center"
                 }`}
                 style={{ clipPath: TRAPEZOID[level] }}
               >
-                <div className={`text-center ${embedded ? "pt-1 pb-0 px-2" : "pt-1.5 pb-0.5 px-4 sm:pt-2.5 sm:pb-1.5 sm:px-8"}`}>
-                  <div className={`font-bold text-neutral-700 ${embedded ? "text-[8px]" : "text-[9px] sm:text-[11px]"}`}>
+                <div className={`text-center ${embedded ? "pt-1.5 pb-0.5 px-2" : "pt-1.5 pb-0.5 px-4 sm:pt-2.5 sm:pb-1.5 sm:px-8"}`}>
+                  <div className={`font-bold text-neutral-700 ${embedded ? "text-[9px]" : "text-[9px] sm:text-[11px]"}`}>
                     {label}
                   </div>
                 </div>
 
-                <div className={`flex items-center justify-center ${gap} ${px} ${embedded ? "pb-1.5" : "pb-2 sm:pb-4"}`}>
+                <div className={`flex items-center justify-center overflow-visible ${gap} ${px} ${embedded ? "pb-2.5" : "pb-2 sm:pb-4"}`}>
                   {cells.map((s) => (
                     <SpeciesTile
                       key={s.id}

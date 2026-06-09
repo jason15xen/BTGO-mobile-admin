@@ -6,7 +6,7 @@ import Pyramid from "@/components/Pyramid";
 import { ECOSYSTEM_LABEL } from "@/data/species";
 import { SPECIES_INFO } from "@/data/speciesInfo";
 import { ECO_THEME } from "@/lib/theme";
-import { PageHero, Screen, Card } from "@/components/ui";
+import { PageHero, Screen, Card, ProgressBar } from "@/components/ui";
 import SpeciesDetailSheet from "@/components/SpeciesDetailSheet";
 import type { Discovery } from "@/lib/game";
 import type { Ecosystem, Species } from "@/lib/types";
@@ -18,6 +18,12 @@ const ACTIVE_TAB_BG: Record<Ecosystem, string> = {
   freshwater: "bg-teal-100",
   marine: "bg-lime-100",
 };
+
+const ECO_PROGRESS_TONE = {
+  terrestrial: "forest",
+  freshwater: "teal",
+  marine: "lime",
+} as const;
 
 export default function PyramidClient({
   discovered,
@@ -48,7 +54,7 @@ export default function PyramidClient({
           <button
             onClick={() => setHelp(true)}
             aria-label="ヘルプ"
-            className="w-9 h-9 rounded-full bg-white/20 hover:bg-white/30 flex items-center justify-center text-white shrink-0"
+            className="w-9 h-9 rounded-full bg-white/20 active:bg-white/30 flex items-center justify-center text-white shrink-0"
           >
             <LuInfo size={18} />
           </button>
@@ -56,7 +62,7 @@ export default function PyramidClient({
       />
       <Screen>
         {/* Ecosystem segmented control */}
-        <div className="relative z-10 -mt-6 flex gap-1 rounded-2xl bg-white p-1 ring-1 ring-black/5 shadow-md">
+        <div className="relative z-10 -mt-6 flex gap-1 rounded-2xl bg-white p-1 float3d">
           {TABS.map((t) => {
             const Icon = ECO_THEME[t.key].Icon;
             const activeTab = eco === t.key;
@@ -65,7 +71,7 @@ export default function PyramidClient({
                 key={t.key}
                 onClick={() => setEco(t.key)}
                 className={`flex-1 h-11 rounded-xl flex items-center justify-center gap-1.5 text-sm font-semibold text-neutral-900 transition-colors ${
-                  activeTab ? ACTIVE_TAB_BG[t.key] : "bg-white hover:bg-neutral-50"
+                  activeTab ? ACTIVE_TAB_BG[t.key] : "bg-white active:bg-neutral-50"
                 }`}
               >
                 <Icon size={16} />
@@ -82,9 +88,13 @@ export default function PyramidClient({
             <span className="text-sm font-semibold text-neutral-700">{ECOSYSTEM_LABEL[eco]}の食物連鎖</span>
             <span className={`text-sm font-bold ${ECO_THEME[eco].text}`}>{found}/{total} 種 ・ {pct}%</span>
           </div>
-          <div className="h-1.5 mb-4 mx-1 bg-neutral-100 rounded-full overflow-hidden well3d">
-            <div className={`h-full rounded-full ${ECO_THEME[eco].solid}`} style={{ width: `${pct}%` }} />
-          </div>
+          <ProgressBar
+            value={pct}
+            tone={ECO_PROGRESS_TONE[eco]}
+            size="sm"
+            shimmer
+            className="mb-4 mx-1"
+          />
 
           <Pyramid ecosystem={eco} discovered={set} onSelect={(s, f) => setSel({ s, found: f })} />
 
@@ -107,8 +117,8 @@ export default function PyramidClient({
 
 function HelpSheet({ onClose }: { onClose: () => void }) {
   return (
-    <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-end sm:items-center justify-center" onClick={onClose}>
-      <div className="w-full max-w-[440px] bg-white rounded-t-3xl sm:rounded-3xl overflow-hidden shadow-2xl" onClick={(e) => e.stopPropagation()}>
+    <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-end sm:items-center justify-center modal-backdrop" onClick={onClose}>
+      <div className="w-full max-w-[440px] bg-white rounded-t-3xl sm:rounded-3xl overflow-hidden shadow-2xl modal-sheet" onClick={(e) => e.stopPropagation()}>
         <div className="relative px-6 pt-6 pb-2">
           <button onClick={onClose} className="absolute right-4 top-4 w-8 h-8 rounded-full bg-neutral-100 flex items-center justify-center text-neutral-500">
             <LuX size={16} />
@@ -145,8 +155,8 @@ function HelpRow({ icon, title, body }: { icon: string; title: string; body: str
 function HintSheet({ s, onClose }: { s: Species; onClose: () => void }) {
   const info = SPECIES_INFO[s.id];
   return (
-    <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-end sm:items-center justify-center" onClick={onClose}>
-      <div className="w-full max-w-[440px] bg-white rounded-t-3xl sm:rounded-3xl overflow-hidden shadow-2xl" onClick={(e) => e.stopPropagation()}>
+    <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-end sm:items-center justify-center modal-backdrop" onClick={onClose}>
+      <div className="w-full max-w-[440px] bg-white rounded-t-3xl sm:rounded-3xl overflow-hidden shadow-2xl modal-sheet" onClick={(e) => e.stopPropagation()}>
         <div className="relative p-6 text-center">
           <button onClick={onClose} className="absolute right-4 top-4 w-8 h-8 rounded-full bg-neutral-100 flex items-center justify-center text-neutral-500">
             <LuX size={16} />

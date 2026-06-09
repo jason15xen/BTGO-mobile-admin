@@ -5,6 +5,8 @@ import AppShell from "@/components/AppShell";
 export const metadata: Metadata = {
   title: "BTGO — Bio Trail GO",
   description: "富士の自然探索 — 生き物発見アプリ",
+  icons: { icon: "/icon.svg", shortcut: "/icon.svg", apple: "/icon.svg" },
+  other: { google: "notranslate" },
 };
 
 export const viewport: Viewport = {
@@ -16,8 +18,8 @@ export const viewport: Viewport = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="ja">
-      <body>
+    <html lang="ja" translate="no" className="notranslate" suppressHydrationWarning>
+      <body className="notranslate" suppressHydrationWarning>
         <AppShell>{children}</AppShell>
       </body>
     </html>

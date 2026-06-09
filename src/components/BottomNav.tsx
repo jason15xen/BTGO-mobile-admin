@@ -14,7 +14,7 @@ const TABS: { href: string; label: string; Icon: IconType }[] = [
 
 // /capture visibility is controlled by AppShell's immersive state (hidden only
 // during the camera/analyzing phases), so it's not listed here.
-const HIDE_ON = ["/register"];
+const HIDE_ON = ["/register", "/login"];
 
 export default function BottomNav() {
   const pathname = usePathname();
@@ -22,7 +22,7 @@ export default function BottomNav() {
   if (HIDE_ON.includes(pathname)) return null;
 
   return (
-    <nav className="shrink-0 relative z-10 bg-white border-t border-forest-200/70 h-[68px] flex items-center justify-around px-1 pb-[env(safe-area-inset-bottom)] shadow-[0_-8px_20px_-10px_rgba(16,28,22,0.18)]">
+    <nav className="shrink-0 relative z-10 bg-gradient-to-b from-white to-forest-50/80 border-t border-forest-200/80 h-[68px] flex items-center justify-around px-1 pb-[env(safe-area-inset-bottom)] nav3d">
       {TABS.slice(0, 2).map((t) => (
         <TabItem key={t.href} {...t} active={pathname === t.href} />
       ))}
@@ -30,9 +30,9 @@ export default function BottomNav() {
       <button
         onClick={() => router.push("/capture")}
         aria-label="撮影"
-        className="-mt-7 w-[58px] h-[58px] rounded-full bg-forest-600 active:scale-95 shadow-glow ring-4 ring-white flex items-center justify-center text-white transition-transform"
+        className="-mt-7 w-[58px] h-[58px] rounded-full bg-gradient-to-b from-forest-500 to-forest-700 active:scale-90 orb3d ring-4 ring-white flex items-center justify-center text-white transition-transform"
       >
-        <FiCamera size={24} />
+        <FiCamera size={24} className="shrink-0" aria-hidden />
       </button>
 
       {TABS.slice(2).map((t) => (
@@ -46,8 +46,8 @@ function TabItem({ href, label, Icon, active }: { href: string; label: string; I
   return (
     <Link href={href} className="flex flex-col items-center gap-0.5 w-16">
       <span
-        className={`flex items-center justify-center w-11 h-7 rounded-full transition-colors ${
-          active ? "bg-forest-100 text-forest-700" : "text-neutral-500"
+        className={`flex items-center justify-center w-11 h-7 rounded-full transition-all duration-300 ${
+          active ? "bg-forest-100 text-forest-700 scale-110" : "text-neutral-500"
         }`}
       >
         <Icon size={21} strokeWidth={active ? 2.6 : 2.2} />

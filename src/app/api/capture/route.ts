@@ -1,7 +1,8 @@
 import { NextResponse } from "next/server";
+import { getCurrentUser, isAuthConfigured, resolveUserId, resolveUserName } from "@/lib/auth";
 import { addObservation, readObservations } from "@/lib/dataStore";
 import { SPECIES_BY_ID } from "@/data/species";
-import { DEMO_USER, rewardFor } from "@/lib/game";
+import { rewardFor } from "@/lib/game";
 import type { Observation } from "@/lib/types";
 
 // Always run on the Node.js runtime (fs access), never Edge.
@@ -20,6 +21,17 @@ const SPOTS = [
 
 export async function POST(req: Request) {
   try {
+    const user = await getCurrentUser();
+    if (isAuthConfigured() && !user) {
+      return NextResponse.json(
+        { error: "unauthorized", message: "ログインが必要です。" },
+        { status: 401 },
+      );
+    }
+
+    const userId = resolveUserId(user);
+    const userName = resolveUserName(user);
+
     const { speciesId } = await req.json();
     const species = SPECIES_BY_ID[speciesId];
     if (!species) {
@@ -40,8 +52,8 @@ export async function POST(req: Request) {
     const observation: Observation = {
       id: `obs-cap-${Date.now()}`,
       speciesId,
-      userId: DEMO_USER.id,
-      userName: DEMO_USER.name,
+      userId,
+      userName,
       lat: Number((spot.lat + jitter()).toFixed(5)),
       lng: Number((spot.lng + jitter()).toFixed(5)),
       area: spot.name,
@@ -58,15 +70,15 @@ export async function POST(req: Request) {
 
     const reward = rewardFor(species);
     const isNewSpecies = !all.some(
-      (o) => o.userId === DEMO_USER.id && o.speciesId === speciesId
+      (o) => o.userId === userId && o.speciesId === speciesId,
     );
     const myDiscovered = Array.from(
       new Set(
         all
           .concat(observation)
-          .filter((o) => o.userId === DEMO_USER.id)
-          .map((o) => o.speciesId)
-      )
+          .filter((o) => o.userId === userId)
+          .map((o) => o.speciesId),
+      ),
     );
 
     return NextResponse.json({ observation, reward, isNewSpecies, myDiscovered });
