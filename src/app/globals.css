@@ -28,45 +28,180 @@ body {
   scrollbar-width: none;
 }
 
-/* Clean, soft, flat surfaces (aligned to the design mockups) */
+/* Raised / recessed 3D surfaces */
 @layer components {
   .app-surface {
-    background: #eef9ec; /* light brand-green base */
+    background: linear-gradient(180deg, #f2faf0 0%, #eef9ec 100%);
   }
 
-  /* Resting card — green-tinted hairline border + soft shadow */
+  .shell3d {
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.7),
+      0 0 0 1px rgba(43, 135, 31, 0.14),
+      0 10px 24px -8px rgba(16, 28, 22, 0.22),
+      0 28px 56px -20px rgba(16, 28, 22, 0.38);
+  }
+
+  /* Raised card — lit top edge + layered cast shadow */
   .card3d {
-    background: #ffffff;
-    border: 1px solid rgba(43, 135, 31, 0.20);
-    box-shadow: 0 1px 2px rgba(16, 28, 22, 0.04), 0 10px 24px -14px rgba(20, 60, 35, 0.2);
+    background: linear-gradient(165deg, #ffffff 0%, #f6fbf4 100%);
+    border: 1px solid rgba(43, 135, 31, 0.22);
+    border-top-color: rgba(255, 255, 255, 0.95);
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.95),
+      0 2px 0 rgba(43, 135, 31, 0.05),
+      0 4px 10px rgba(16, 28, 22, 0.07),
+      0 14px 32px -12px rgba(20, 60, 35, 0.3);
   }
 
-  /* Slightly elevated (floats over a header) */
   .float3d {
-    background: #ffffff;
-    border: 1px solid rgba(43, 135, 31, 0.20);
-    box-shadow: 0 2px 4px rgba(16, 28, 22, 0.05), 0 16px 32px -16px rgba(20, 60, 35, 0.26);
+    background: linear-gradient(165deg, #ffffff 0%, #f6fbf4 100%);
+    border: 1px solid rgba(43, 135, 31, 0.22);
+    border-top-color: rgba(255, 255, 255, 0.95);
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.9),
+      0 6px 16px rgba(16, 28, 22, 0.1),
+      0 20px 40px -14px rgba(20, 60, 35, 0.34);
   }
 
-  /* Tinted tile — keeps its own bg colour, just a soft lift */
   .tile3d {
-    border: 1px solid rgba(43, 135, 31, 0.16);
-    box-shadow: 0 1px 2px rgba(16, 28, 22, 0.04), 0 8px 18px -12px rgba(20, 60, 35, 0.18);
+    border: 1px solid rgba(43, 135, 31, 0.18);
+    border-top-color: rgba(255, 255, 255, 0.6);
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.5),
+      0 2px 6px rgba(16, 28, 22, 0.06),
+      0 10px 22px -10px rgba(20, 60, 35, 0.22);
   }
 
-  /* Button — flat with a gentle shadow + subtle press */
+  /* Beveled button */
   .btn3d {
-    box-shadow: 0 1px 2px rgba(16, 28, 22, 0.08), 0 6px 14px -6px rgba(16, 28, 22, 0.28);
-    transition: transform 0.1s ease, box-shadow 0.1s ease, filter 0.1s ease;
+    position: relative;
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.28),
+      inset 0 -2px 0 rgba(0, 0, 0, 0.12),
+      0 2px 4px rgba(16, 28, 22, 0.12),
+      0 8px 18px -6px rgba(16, 28, 22, 0.32);
+    transition: transform 0.1s ease, box-shadow 0.1s ease;
   }
   .btn3d:active {
-    transform: translateY(1px);
-    box-shadow: 0 1px 2px rgba(16, 28, 22, 0.1);
+    transform: translateY(2px);
+    box-shadow:
+      inset 0 2px 4px rgba(0, 0, 0, 0.18),
+      0 1px 2px rgba(16, 28, 22, 0.12);
   }
 
-  /* Recessed track (progress wells) */
+  .badge3d {
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.35),
+      inset 0 -1px 0 rgba(0, 0, 0, 0.15),
+      0 2px 5px rgba(16, 28, 22, 0.2);
+    border: 1px solid rgba(0, 0, 0, 0.1);
+    border-bottom-color: rgba(0, 0, 0, 0.2);
+  }
+
+  .nav3d {
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.9),
+      0 -4px 16px -4px rgba(16, 28, 22, 0.14),
+      0 -12px 28px -8px rgba(16, 28, 22, 0.2);
+  }
+
+  .orb3d {
+    box-shadow:
+      inset 0 2px 4px rgba(255, 255, 255, 0.35),
+      inset 0 -3px 6px rgba(0, 0, 0, 0.2),
+      0 6px 16px -4px rgba(5, 150, 105, 0.55),
+      0 12px 28px -8px rgba(16, 28, 22, 0.28);
+  }
+
+  /* Recessed groove — dark rim so the fill colour pops */
   .well3d {
-    box-shadow: inset 0 1px 2px rgba(16, 28, 22, 0.12);
+    box-shadow:
+      inset 0 3px 8px rgba(25, 72, 21, 0.32),
+      inset 0 -1px 0 rgba(255, 255, 255, 0.88);
+  }
+
+  /* Progress — neutral empty track + bold fill + bright leading edge */
+  .progress-track3d {
+    position: relative;
+    overflow: hidden;
+    background: #c5d0c2;
+    border: 1px solid rgba(16, 28, 22, 0.12);
+    box-shadow: inset 0 2px 6px rgba(16, 28, 22, 0.14);
+  }
+
+  .progress-track3d--gold {
+    background: #e8d5a8;
+    border-color: rgba(146, 64, 14, 0.15);
+  }
+
+  .progress-track3d--teal {
+    background: #b8e0da;
+    border-color: rgba(15, 118, 110, 0.15);
+  }
+
+  .progress-track3d--lime {
+    background: #d0e6a0;
+    border-color: rgba(77, 124, 15, 0.15);
+  }
+
+  .progress-fill3d {
+    position: relative;
+    min-width: 0;
+    height: 100%;
+    border-radius: inherit;
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.45),
+      inset 0 -1px 2px rgba(0, 0, 0, 0.15);
+  }
+
+  .progress-fill3d::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    background: linear-gradient(180deg, rgba(255, 255, 255, 0.18) 0%, transparent 30%);
+    pointer-events: none;
+  }
+
+  .progress-fill-shimmer::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(90deg, transparent 0%, rgba(255, 255, 255, 0.15) 50%, transparent 100%);
+    background-size: 200% 100%;
+    animation: btgo-shimmer 2.4s linear infinite;
+    pointer-events: none;
+    z-index: 1;
+  }
+
+  .progress-fill3d--forest {
+    /* Fresh grass — bright blade green → lawn → deep turf */
+    background: linear-gradient(
+      180deg,
+      #9be647 0%,
+      #6fcf3f 35%,
+      #4caf3a 70%,
+      #358f2f 100%
+    );
+  }
+  .progress-fill3d--gold {
+    background: linear-gradient(180deg, #fbbf24 0%, #f59e0b 60%, #d97706 100%);
+  }
+  .progress-fill3d--teal {
+    background: linear-gradient(180deg, #2dd4bf 0%, #14b8a6 60%, #0f766e 100%);
+  }
+  .progress-fill3d--lime {
+    background: linear-gradient(180deg, #a3e635 0%, #84cc16 60%, #4d7c0f 100%);
+  }
+  .progress-fill3d--aqua {
+    background: linear-gradient(180deg, #5eead4 0%, #37a626 50%, #0d9488 100%);
+  }
+
+  .progress-track3d--glass {
+    background: rgba(0, 0, 0, 0.35);
+    border-color: rgba(255, 255, 255, 0.12);
+    box-shadow: inset 0 2px 5px rgba(0, 0, 0, 0.35);
   }
 
   /* 3D tetrahedron backdrop — rotates with device orientation */
@@ -123,5 +258,90 @@ body {
   .pyramid-tetra-face:nth-child(4) {
     transform: rotateX(180deg) translateY(30px) scale(0.92);
     opacity: 0.55;
+  }
+
+  /* Entertainment motion — modals, progress, stagger */
+  .modal-backdrop {
+    animation: btgo-fade-in 0.3s ease-out;
+  }
+
+  .modal-sheet {
+    animation: btgo-slide-up 0.45s cubic-bezier(0.32, 0.72, 0, 1) forwards;
+  }
+
+  .progress-shimmer {
+    position: relative;
+    overflow: hidden;
+  }
+  .progress-shimmer::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(
+      90deg,
+      transparent 0%,
+      rgba(255, 255, 255, 0.45) 50%,
+      transparent 100%
+    );
+    background-size: 200% 100%;
+    animation: btgo-shimmer 2.2s linear infinite;
+    pointer-events: none;
+  }
+
+  .scan-grid {
+    background-image:
+      linear-gradient(rgba(95, 217, 208, 0.12) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(95, 217, 208, 0.12) 1px, transparent 1px);
+    background-size: 24px 24px;
+    animation: btgo-shimmer 4s linear infinite;
+  }
+
+  .stagger-1 { animation-delay: 80ms; }
+  .stagger-2 { animation-delay: 160ms; }
+  .stagger-3 { animation-delay: 240ms; }
+  .stagger-4 { animation-delay: 320ms; }
+  .stagger-5 { animation-delay: 400ms; }
+  .stagger-6 { animation-delay: 480ms; }
+
+  .opacity-0-start {
+    opacity: 0;
+  }
+
+  .tab-content-enter {
+    animation: btgo-fade-up 0.4s ease-out forwards;
+  }
+
+  .celebrate-ring {
+    animation: pulseGlow 1.8s ease-out infinite;
+  }
+}
+
+@keyframes btgo-fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes btgo-slide-up {
+  from { opacity: 0; transform: translateY(28px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes btgo-fade-up {
+  from { opacity: 0; transform: translateY(18px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes btgo-shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
   }
 }

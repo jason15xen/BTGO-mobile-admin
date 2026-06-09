@@ -49,6 +49,72 @@ const config: Config = {
         hairline: "0 1px 0 rgba(16,28,22,0.06), 0 6px 14px -8px rgba(16,28,22,0.18)",
       },
       borderRadius: { "2xl": "1.1rem", "3xl": "1.5rem" },
+      keyframes: {
+        fadeUp: {
+          "0%": { opacity: "0", transform: "translateY(18px)" },
+          "100%": { opacity: "1", transform: "translateY(0)" },
+        },
+        fadeIn: {
+          "0%": { opacity: "0" },
+          "100%": { opacity: "1" },
+        },
+        scaleIn: {
+          "0%": { opacity: "0", transform: "scale(0.92)" },
+          "100%": { opacity: "1", transform: "scale(1)" },
+        },
+        popIn: {
+          "0%": { opacity: "0", transform: "scale(0.55)" },
+          "70%": { transform: "scale(1.06)" },
+          "100%": { opacity: "1", transform: "scale(1)" },
+        },
+        float: {
+          "0%, 100%": { transform: "translateY(0)" },
+          "50%": { transform: "translateY(-7px)" },
+        },
+        pulseGlow: {
+          "0%, 100%": { boxShadow: "0 0 0 0 rgba(43, 135, 31, 0.5)" },
+          "50%": { boxShadow: "0 0 0 14px rgba(43, 135, 31, 0)" },
+        },
+        wiggle: {
+          "0%, 100%": { transform: "rotate(-4deg) scale(1)" },
+          "50%": { transform: "rotate(4deg) scale(1.05)" },
+        },
+        shimmer: {
+          "0%": { backgroundPosition: "-200% 0" },
+          "100%": { backgroundPosition: "200% 0" },
+        },
+        slideUp: {
+          "0%": { opacity: "0", transform: "translateY(28px)" },
+          "100%": { opacity: "1", transform: "translateY(0)" },
+        },
+        bounceSoft: {
+          "0%, 100%": { transform: "translateY(0)" },
+          "50%": { transform: "translateY(-5px)" },
+        },
+        scanLine: {
+          "0%": { top: "0%", opacity: "0.4" },
+          "50%": { opacity: "1" },
+          "100%": { top: "100%", opacity: "0.4" },
+        },
+        sparkle: {
+          "0%, 100%": { opacity: "0.3", transform: "scale(0.8)" },
+          "50%": { opacity: "1", transform: "scale(1.2)" },
+        },
+      },
+      animation: {
+        fadeUp: "fadeUp 0.55s ease-out forwards",
+        fadeIn: "fadeIn 0.35s ease-out forwards",
+        scaleIn: "scaleIn 0.45s ease-out forwards",
+        popIn: "popIn 0.55s cubic-bezier(0.34, 1.56, 0.64, 1) forwards",
+        float: "float 3.2s ease-in-out infinite",
+        pulseGlow: "pulseGlow 2.2s ease-out infinite",
+        wiggle: "wiggle 0.6s ease-in-out infinite",
+        shimmer: "shimmer 2.2s linear infinite",
+        slideUp: "slideUp 0.45s cubic-bezier(0.32, 0.72, 0, 1) forwards",
+        bounceSoft: "bounceSoft 2.4s ease-in-out infinite",
+        scanLine: "scanLine 2.5s ease-in-out infinite",
+        sparkle: "sparkle 1.8s ease-in-out infinite",
+      },
     },
   },
   plugins: [],

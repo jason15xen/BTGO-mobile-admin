@@ -1,13 +1,14 @@
 "use client";
 
 import { useState } from "react";
+import { FiCamera } from "react-icons/fi";
 import { SPECIES, RARITY_LABEL } from "@/data/species";
 import type { Species } from "@/lib/types";
 import type { Discovery } from "@/lib/game";
 import SpeciesImage from "@/components/SpeciesImage";
 import SpeciesDetailSheet from "@/components/SpeciesDetailSheet";
 import { RARITY_THEME } from "@/lib/theme";
-import { PageHero, Screen, Card } from "@/components/ui";
+import { PageHero, Screen, Card, ProgressBar } from "@/components/ui";
 
 type Filter = "all" | "terrestrial" | "freshwater" | "marine";
 
@@ -49,9 +50,7 @@ export default function EncyclopediaClient({ discoveries }: { discoveries: Recor
             </div>
             <div className="text-3xl font-extrabold text-forest-600">{pct}%</div>
           </div>
-          <div className="h-2.5 mt-3 bg-neutral-100 rounded-full overflow-hidden well3d">
-            <div className="h-full bg-gradient-to-r from-forest-400 to-forest-600 rounded-full transition-all" style={{ width: `${pct}%` }} />
-          </div>
+          <ProgressBar value={pct} className="mt-3" />
         </Card>
 
         {/* filters */}
@@ -72,7 +71,9 @@ export default function EncyclopediaClient({ discoveries }: { discoveries: Recor
         {/* grid (discovered only) */}
         {list.length === 0 ? (
           <Card className="text-center py-10">
-            <div className="text-4xl">📷</div>
+            <div className="w-12 h-12 mx-auto rounded-full bg-neutral-100 flex items-center justify-center text-neutral-400">
+              <FiCamera size={22} />
+            </div>
             <p className="text-sm text-neutral-500 mt-2">まだ発見した生き物がいません。<br />撮影して図鑑をうめよう！</p>
           </Card>
         ) : (
@@ -81,7 +82,7 @@ export default function EncyclopediaClient({ discoveries }: { discoveries: Recor
               <button
                 key={s.id}
                 onClick={() => setSelected(s)}
-                className="text-left rounded-2xl p-1.5 bg-white border border-neutral-100 shadow-soft active:scale-[0.98] transition-all"
+                className="text-left rounded-2xl p-1.5 bg-white border border-neutral-100 shadow-soft active:scale-[0.96] transition-transform duration-200"
               >
                 <div className="relative aspect-square rounded-xl overflow-hidden">
                   <SpeciesImage speciesId={s.id} emoji={s.emoji} alt={s.nameJa} className="w-full h-full" rounded="rounded-xl" />

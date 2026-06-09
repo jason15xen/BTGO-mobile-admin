@@ -50,6 +50,8 @@ const TIER_GAP: Record<number, { full: string; embedded: string }> = {
   1: { full: "gap-2.5 sm:gap-3.5", embedded: "gap-1.5" },
 };
 
+const TIER_STAGGER = ["stagger-1", "stagger-2", "stagger-3", "stagger-4"] as const;
+
 const TIER_PX: Record<number, { full: string; embedded: string }> = {
   4: { full: "px-6 sm:px-9", embedded: "px-5" },
   3: { full: "px-7 sm:px-10", embedded: "px-5" },
@@ -104,7 +106,7 @@ function SpeciesTile({
         </span>
       )}
       {isNew && found && (
-        <span className="absolute -top-0.5 -right-0.5 text-[7px] font-bold bg-forest-600 text-white px-1 py-px rounded-full shadow leading-none">
+        <span className="absolute -top-0.5 -right-0.5 text-[7px] font-bold bg-forest-600 text-white px-1 py-px rounded-full shadow leading-none animate-popIn">
           新！
         </span>
       )}
@@ -116,7 +118,7 @@ function SpeciesTile({
   } ${
     found
       ? isNew
-        ? "ring-2 ring-gold-400 shadow-[0_4px_12px_rgba(0,0,0,0.22)]"
+        ? "ring-2 ring-gold-400 shadow-[0_4px_12px_rgba(0,0,0,0.22)] animate-pulseGlow"
         : "ring-1 ring-white shadow-[0_2px_8px_rgba(0,0,0,0.16)]"
       : "bg-neutral-200/75 ring-1 ring-neutral-300/45 shadow-inset"
   } overflow-hidden`;
@@ -155,7 +157,7 @@ export default function Pyramid({ ecosystem, discovered, highlightId, embedded, 
           return (
             <div
               key={level}
-              className={`relative w-full ${embedded ? "" : "max-sm:flex-1 max-sm:min-h-0"}`}
+              className={`relative w-full opacity-0-start animate-fadeUp ${TIER_STAGGER[index]} ${embedded ? "" : "max-sm:flex-1 max-sm:min-h-0"}`}
               style={{ marginTop: index > 0 ? 1 : 0 }}
             >
               {index > 0 && (

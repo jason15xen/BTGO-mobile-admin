@@ -27,12 +27,16 @@ type PendingPurchase = {
 type PurchaseResult = { storeName: string; couponLabel: string; cost: number };
 
 export default function RewardsClient({ stats }: { stats: UserStats }) {
-  const [balance, setBalance] = useState(() => loadBalance(stats.points));
+  const [balance, setBalance] = useState(stats.points);
   const [discountStore, setDiscountStore] = useState<DiscountStore | null>(null);
   const [fullPriceOpen, setFullPriceOpen] = useState(false);
   const [pending, setPending] = useState<PendingPurchase | null>(null);
   const [processing, setProcessing] = useState<PendingPurchase | null>(null);
   const [purchase, setPurchase] = useState<PurchaseResult | null>(null);
+
+  useEffect(() => {
+    setBalance(loadBalance(stats.points));
+  }, [stats.points]);
 
   function requestPurchase(storeName: string, coupon: CouponOffer, discounted: boolean) {
     const cost = couponCost(coupon, discounted);
@@ -84,7 +88,7 @@ export default function RewardsClient({ stats }: { stats: UserStats }) {
                 key={store.id}
                 type="button"
                 onClick={() => setDiscountStore(store)}
-                className="card3d rounded-2xl p-4 flex items-center gap-3 text-left w-full active:scale-[0.99] transition-transform"
+                className="card3d rounded-2xl p-4 flex items-center gap-3 text-left w-full active:scale-[0.98] transition-transform duration-200"
               >
                 <span className="w-12 h-12 rounded-xl bg-forest-50 text-forest-600 flex items-center justify-center shrink-0">
                   <store.Icon size={22} />
@@ -172,9 +176,9 @@ function Sheet({
   children: ReactNode;
 }) {
   return (
-    <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-end sm:items-center justify-center" onClick={onClose}>
+    <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-end sm:items-center justify-center modal-backdrop" onClick={onClose}>
       <div
-        className="w-full max-w-[440px] max-h-[88vh] overflow-y-auto no-scrollbar bg-white rounded-t-3xl sm:rounded-3xl shadow-2xl"
+        className="w-full max-w-[440px] max-h-[88vh] overflow-y-auto no-scrollbar bg-white rounded-t-3xl sm:rounded-3xl shadow-2xl modal-sheet"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="sticky top-0 bg-white z-10 px-5 pt-5 pb-3 border-b border-neutral-100">
@@ -212,7 +216,7 @@ function CouponRow({
       onClick={onSelect}
       className={`w-full flex items-center justify-between gap-3 rounded-xl px-4 py-3.5 border transition-colors ${
         affordable
-          ? "border-forest-200 bg-forest-50/50 hover:bg-forest-50 active:scale-[0.99]"
+          ? "border-forest-200 bg-forest-50/50 active:bg-forest-50 active:scale-[0.99]"
           : "border-neutral-200 bg-neutral-50 opacity-60"
       }`}
     >
@@ -286,8 +290,8 @@ function ConfirmPurchaseModal({
 }) {
   const after = balance - pending.cost;
   return (
-    <div className="fixed inset-0 z-[60] bg-black/50 backdrop-blur-sm flex items-end sm:items-center justify-center" onClick={onCancel}>
-      <div className="w-full max-w-[440px] bg-white rounded-t-3xl sm:rounded-3xl p-6 shadow-2xl" onClick={(e) => e.stopPropagation()}>
+    <div className="fixed inset-0 z-[60] bg-black/50 backdrop-blur-sm flex items-end sm:items-center justify-center modal-backdrop" onClick={onCancel}>
+      <div className="w-full max-w-[440px] bg-white rounded-t-3xl sm:rounded-3xl p-6 shadow-2xl modal-sheet" onClick={(e) => e.stopPropagation()}>
         <h2 className="text-lg font-bold text-neutral-900">購入の確認</h2>
         <p className="text-sm text-neutral-500 mt-1">このクーポンを購入しますか？</p>
         <div className="mt-4 rounded-2xl bg-forest-50 border border-forest-100 p-4 space-y-2 text-sm">
@@ -384,9 +388,9 @@ function PurchaseProgressModal({
   }, []);
 
   return (
-    <div className="fixed inset-0 z-[70] bg-black/50 backdrop-blur-sm flex items-end sm:items-center justify-center">
-      <div className="w-full max-w-[440px] bg-white rounded-t-3xl sm:rounded-3xl p-6 shadow-2xl">
-        <h2 className="text-lg font-bold text-neutral-900 text-center">交換処理中…</h2>
+    <div className="fixed inset-0 z-[70] bg-black/50 backdrop-blur-sm flex items-end sm:items-center justify-center modal-backdrop">
+      <div className="w-full max-w-[440px] bg-white rounded-t-3xl sm:rounded-3xl p-6 shadow-2xl modal-sheet">
+        <h2 className="text-lg font-bold text-neutral-900 text-center animate-pulse">交換処理中…</h2>
         <p className="text-sm text-neutral-500 text-center mt-1">{pending.coupon.label}</p>
         <CircularProgressRing progress={progress} />
         <p className="text-center text-xs text-neutral-400 mt-4">取引の承認を待っています</p>
@@ -446,7 +450,7 @@ function FullPriceStoreModal({
               key={store.id}
               type="button"
               onClick={() => setSelected(store)}
-              className="w-full flex items-center gap-3 rounded-xl border border-neutral-200 px-4 py-3 text-left hover:bg-forest-50/50 active:scale-[0.99] transition-all"
+              className="w-full flex items-center gap-3 rounded-xl border border-neutral-200 px-4 py-3 text-left active:bg-forest-50/50 active:scale-[0.99] transition-all"
             >
               <span className="w-10 h-10 rounded-lg bg-forest-50 text-forest-600 flex items-center justify-center shrink-0">
                 <store.Icon size={18} />
@@ -473,12 +477,12 @@ function PurchaseSuccessModal({
   onClose: () => void;
 }) {
   return (
-    <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-end sm:items-center justify-center" onClick={onClose}>
-      <div className="w-full max-w-[440px] bg-white rounded-t-3xl sm:rounded-3xl p-6 shadow-2xl text-center" onClick={(e) => e.stopPropagation()}>
-        <div className="w-14 h-14 mx-auto mb-3 rounded-full bg-forest-100 text-forest-600 flex items-center justify-center">
-          <LuPartyPopper size={28} />
+    <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-end sm:items-center justify-center modal-backdrop" onClick={onClose}>
+      <div className="w-full max-w-[440px] bg-white rounded-t-3xl sm:rounded-3xl p-6 shadow-2xl text-center modal-sheet" onClick={(e) => e.stopPropagation()}>
+        <div className="w-14 h-14 mx-auto mb-3 rounded-full bg-forest-100 text-forest-600 flex items-center justify-center animate-popIn celebrate-ring">
+          <LuPartyPopper size={28} className="animate-wiggle" />
         </div>
-        <h2 className="text-lg font-bold text-neutral-900">クーポンを獲得しました</h2>
+        <h2 className="text-lg font-bold text-neutral-900 opacity-0-start animate-fadeUp stagger-1">クーポンを獲得しました</h2>
         <p className="text-sm text-neutral-600 mt-2">
           {result.storeName}
           <br />

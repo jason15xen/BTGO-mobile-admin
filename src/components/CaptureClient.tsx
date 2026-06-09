@@ -163,6 +163,12 @@ export default function CaptureClient() {
         body: JSON.stringify({ speciesId: subject.id }),
       });
       const data = await res.json().catch(() => ({}));
+      if (res.status === 401) {
+        alert("記録を保存するにはログインが必要です。");
+        router.push("/login");
+        setPhase("result");
+        return;
+      }
       setReward(data.reward ?? rewardFor(subject));
       setIsNew(data.isNewSpecies ?? true);
       setDiscovered(new Set<string>(data.myDiscovered ?? [subject.id]));
@@ -240,7 +246,7 @@ export default function CaptureClient() {
             onClick={takeFrame}
             disabled={camError || !camReady}
             aria-label="シャッター"
-            className="w-[76px] h-[76px] rounded-full bg-white ring-4 ring-white/30 disabled:opacity-40 active:scale-95 transition-transform"
+            className={`w-[76px] h-[76px] rounded-full bg-white ring-4 ring-white/30 disabled:opacity-40 active:scale-90 transition-transform ${camReady ? "celebrate-ring" : ""}`}
           />
           <button
             onClick={() => setFacing((f) => (f === "environment" ? "user" : "environment"))}
@@ -267,14 +273,20 @@ export default function CaptureClient() {
             // eslint-disable-next-line @next/next/no-img-element
             <img src={shot} alt="撮影画像" className="absolute inset-0 w-full h-full object-cover" />
           )}
-          <div className="absolute inset-0 bg-black/30" />
+          <div className="absolute inset-0 bg-black/30 scan-grid" />
           {/* scan line (driven by progress) */}
-          <div className="absolute inset-x-0 h-1 bg-gradient-to-r from-transparent via-aqua-300 to-transparent shadow-[0_0_12px_rgba(95,217,208,0.8)] transition-all" style={{ top: `${progress}%` }} />
+          <div className="absolute inset-x-0 h-1.5 bg-gradient-to-r from-transparent via-aqua-300 to-transparent shadow-[0_0_16px_rgba(95,217,208,0.9)] transition-all animate-scanPulse" style={{ top: `${progress}%` }} />
           <div className="absolute inset-x-0 bottom-0 p-5 bg-gradient-to-t from-black/80 to-transparent">
-            <div className="text-center font-semibold">AIが解析中…</div>
+            <div className="text-center font-semibold animate-pulse">AIが解析中…</div>
             <div className="text-center text-xs text-white/70 mb-2">生態系データベースと照合しています</div>
-            <div className="h-2 bg-white/20 rounded-full overflow-hidden">
-              <div className="h-full bg-gradient-to-r from-aqua-400 to-forest-400 transition-all" style={{ width: `${progress}%` }} />
+            <div className="progress-track3d progress-track3d--glass h-2 rounded-full">
+              <div
+                className="progress-fill3d progress-fill-shimmer transition-all duration-150"
+                style={{
+                  width: `${progress}%`,
+                  background: "linear-gradient(180deg, #5eead4 0%, #37a626 50%, #0d9488 100%)",
+                }}
+              />
             </div>
             <div className="text-right text-xs mt-1">{progress}%</div>
           </div>
@@ -373,14 +385,14 @@ export default function CaptureClient() {
   // ---------------- REFLECTION ----------------
   return (
     <div className="min-h-full bg-neutral-50 pb-6">
-      <div className={`bg-gradient-to-r ${theme.gradient} text-white px-5 pt-6 pb-8 text-center`}>
-        <LuPartyPopper size={30} className="mx-auto" />
-        <h1 className="font-bold text-lg mt-1">ピラミッドに反映されました！</h1>
-        <p className="text-xs opacity-90 mt-1">あなたの発見が生態系のつながりを強化しました</p>
+      <div className={`bg-gradient-to-r ${theme.gradient} text-white px-5 pt-6 pb-8 text-center animate-fadeIn`}>
+        <LuPartyPopper size={30} className="mx-auto animate-wiggle" />
+        <h1 className="font-bold text-lg mt-1 opacity-0-start animate-fadeUp stagger-1">ピラミッドに反映されました！</h1>
+        <p className="text-xs mt-1 opacity-0-start animate-fadeUp stagger-2">あなたの発見が生態系のつながりを強化しました</p>
       </div>
 
       <div className="px-5 -mt-4 space-y-4">
-        <div className="card3d rounded-2xl p-4">
+        <div className="card3d rounded-2xl p-4 opacity-0-start animate-scaleIn stagger-3">
           <div className="flex items-center gap-3 mb-3">
             <SpeciesImage speciesId={subject.id} emoji={subject.emoji} alt={subject.nameJa} className="w-12 h-12" rounded="rounded-full ring-2 ring-gold-400" />
             <div>
@@ -392,12 +404,12 @@ export default function CaptureClient() {
         </div>
 
         <div className="grid grid-cols-3 gap-3">
-          <Stat label="獲得B-mile" value={`+${reward?.points ?? 0}`} />
-          <Stat label="獲得XP" value={`+${reward?.xp ?? 0}`} />
-          <Stat label="登録種数" value={`${discovered.size}`} />
+          <Stat label="獲得B-mile" value={`+${reward?.points ?? 0}`} className="stagger-4" />
+          <Stat label="獲得XP" value={`+${reward?.xp ?? 0}`} className="stagger-5" />
+          <Stat label="登録種数" value={`${discovered.size}`} className="stagger-6" />
         </div>
 
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-2 gap-3 opacity-0-start animate-fadeUp stagger-6">
           <button onClick={() => router.push("/encyclopedia")} className="bg-white border-[1.5px] border-neutral-200 text-neutral-700 font-semibold rounded-2xl py-3.5">
             図鑑で確認
           </button>
@@ -428,9 +440,9 @@ function Info({ Icon, label, value }: { Icon: IconType; label: string; value: st
   );
 }
 
-function Stat({ label, value }: { label: string; value: string }) {
+function Stat({ label, value, className = "" }: { label: string; value: string; className?: string }) {
   return (
-    <div className="card3d rounded-2xl p-3 text-center">
+    <div className={`card3d rounded-2xl p-3 text-center opacity-0-start animate-popIn ${className}`}>
       <div className="text-lg font-extrabold text-forest-700">{value}</div>
       <div className="text-[10px] text-neutral-400 mt-0.5">{label}</div>
     </div>

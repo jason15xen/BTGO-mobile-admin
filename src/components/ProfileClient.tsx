@@ -5,10 +5,13 @@ import Link from "next/link";
 import type { IconType } from "react-icons";
 import { FiUser, FiCamera, FiLogOut, FiEdit2 } from "react-icons/fi";
 import { LuFootprints, LuBird, LuTicket, LuActivity } from "react-icons/lu";
+import { useRouter } from "next/navigation";
+import type { AppUser } from "@/lib/auth";
 import type { UserStats } from "@/lib/game";
+import { createClient, isSupabaseConfigured } from "@/lib/supabase/client";
 import { loadBalance, loadOwnedCoupons, type OwnedCoupon } from "@/lib/wallet";
 import SpeciesImage from "@/components/SpeciesImage";
-import { PageHero, Screen, Card } from "@/components/ui";
+import { PageHero, Screen, Card, ProgressBar } from "@/components/ui";
 
 type ProfileTab = "activity" | "coupon";
 
@@ -28,49 +31,49 @@ interface Recent {
 
 const fmtDate = (iso: string) => iso.slice(0, 10).replace(/-/g, "/");
 
-export default function ProfileClient({ stats, recent }: { stats: UserStats; recent: Recent[] }) {
-  const [account, setAccount] = useState<{ name?: string; email?: string; region?: string } | null>(null);
+export default function ProfileClient({
+  user,
+  stats,
+  recent,
+}: {
+  user: AppUser | null;
+  stats: UserStats;
+  recent: Recent[];
+}) {
+  const router = useRouter();
   const [coupons, setCoupons] = useState<OwnedCoupon[]>([]);
   const [balance, setBalance] = useState(stats.points);
   const [tab, setTab] = useState<ProfileTab>("activity");
 
   useEffect(() => {
-    try {
-      const raw = localStorage.getItem("btgo_user");
-      if (raw) setAccount(JSON.parse(raw));
-    } catch {
-      /* ignore */
-    }
     setCoupons(loadOwnedCoupons());
     setBalance(loadBalance(stats.points));
   }, [stats.points]);
 
-  function signOut() {
-    try {
-      localStorage.removeItem("btgo_user");
-    } catch {
-      /* ignore */
+  async function signOut() {
+    if (isSupabaseConfigured()) {
+      const supabase = createClient();
+      await supabase.auth.signOut();
     }
-    setAccount(null);
+    router.push("/");
+    router.refresh();
   }
 
-  const name = account?.name ?? "ゲスト";
+  const name = user?.name ?? "ゲスト";
 
   return (
     <div className="min-h-full bg-forest-50">
-      <PageHero title="マイページ" subtitle={account?.email ?? "アカウント・実績"} gradient="from-forest-500 to-teal-700" />
+      <PageHero title="マイページ" subtitle={user?.email ?? "ゲストモード — ログインして記録を保存"} gradient="from-forest-500 to-teal-700" />
       <Screen className="space-y-4">
         <Card className="-mt-9 relative z-10 text-center">
-          <div className="w-20 h-20 mx-auto rounded-full bg-forest-100 text-forest-600 flex items-center justify-center">
+          <div className="w-20 h-20 mx-auto rounded-full bg-gradient-to-b from-forest-100 to-forest-200 text-forest-600 flex items-center justify-center tile3d">
             <FiUser size={38} />
           </div>
           <div className="mt-2 text-lg font-bold text-neutral-900">{name}</div>
           <div className="text-xs text-neutral-400">
-            {account?.region ? `${account.region} ・ ` : ""}Lv.{stats.level} {stats.title}
+            {user?.region ? `${user.region} ・ ` : ""}Lv.{stats.level} {stats.title}
           </div>
-          <div className="h-2 mt-3 bg-neutral-100 rounded-full overflow-hidden well3d">
-            <div className="h-full bg-gold-400 rounded-full" style={{ width: `${(stats.xpInLevel / stats.xpForLevel) * 100}%` }} />
-          </div>
+          <ProgressBar value={stats.xpInLevel} max={stats.xpForLevel} tone="gold" className="mt-3" />
           <div className="text-[11px] text-neutral-400 mt-1">{stats.xpInLevel} / {stats.xpForLevel} XP</div>
 
           <div className="grid grid-cols-3 gap-2 mt-4">
@@ -80,18 +83,20 @@ export default function ProfileClient({ stats, recent }: { stats: UserStats; rec
           </div>
 
           <div className="mt-4 flex gap-2">
-            {account ? (
+            {user ? (
               <button onClick={signOut} className="flex-1 flex items-center justify-center gap-1.5 text-sm font-semibold text-neutral-600 bg-neutral-100 rounded-xl py-2.5">
                 <FiLogOut size={15} /> ログアウト
               </button>
             ) : (
-              <Link href="/register" className="flex-1 flex items-center justify-center gap-1.5 text-sm font-semibold text-white bg-forest-600 rounded-xl py-2.5">
-                <FiUser size={15} /> 新規登録 / ログイン
+              <Link href="/login" className="flex-1 flex items-center justify-center gap-1.5 text-sm font-semibold text-white bg-forest-600 rounded-xl py-2.5">
+                <FiUser size={15} /> ログイン
               </Link>
             )}
-            <Link href="/register" className="flex items-center justify-center gap-1.5 text-sm font-semibold text-neutral-600 bg-neutral-100 rounded-xl py-2.5 px-4">
-              <FiEdit2 size={15} /> 編集
-            </Link>
+            {!user && (
+              <Link href="/register" className="flex items-center justify-center gap-1.5 text-sm font-semibold text-neutral-600 bg-neutral-100 rounded-xl py-2.5 px-4">
+                <FiEdit2 size={15} /> 登録
+              </Link>
+            )}
           </div>
         </Card>
 
@@ -101,7 +106,7 @@ export default function ProfileClient({ stats, recent }: { stats: UserStats; rec
             type="button"
             onClick={() => setTab("activity")}
             className={`flex-1 h-11 rounded-xl flex items-center justify-center gap-1.5 text-sm font-semibold text-neutral-900 transition-colors ${
-              tab === "activity" ? "bg-forest-100" : "bg-white hover:bg-neutral-50"
+              tab === "activity" ? "bg-forest-100" : "bg-white active:bg-neutral-50"
             }`}
           >
             <LuActivity size={16} />
@@ -111,7 +116,7 @@ export default function ProfileClient({ stats, recent }: { stats: UserStats; rec
             type="button"
             onClick={() => setTab("coupon")}
             className={`flex-1 h-11 rounded-xl flex items-center justify-center gap-1.5 text-sm font-semibold text-neutral-900 transition-colors ${
-              tab === "coupon" ? "bg-gold-100" : "bg-white hover:bg-neutral-50"
+              tab === "coupon" ? "bg-gold-100" : "bg-white active:bg-neutral-50"
             }`}
           >
             <LuTicket size={16} />
@@ -124,11 +129,13 @@ export default function ProfileClient({ stats, recent }: { stats: UserStats; rec
           </button>
         </div>
 
-        {tab === "activity" ? (
-          <ActivityPanel recent={recent} />
-        ) : (
-          <CouponPanel coupons={coupons} />
-        )}
+        <div key={tab} className="tab-content-enter">
+          {tab === "activity" ? (
+            <ActivityPanel recent={recent} />
+          ) : (
+            <CouponPanel coupons={coupons} />
+          )}
+        </div>
       </Screen>
     </div>
   );
@@ -164,7 +171,7 @@ function ActivityPanel({ recent }: { recent: Recent[] }) {
             />
           ) : (
             recent.map((r, i) => (
-              <div key={i} className="card3d rounded-2xl p-3 flex items-center gap-3">
+              <div key={i} className={`card3d rounded-2xl p-3 flex items-center gap-3 opacity-0-start animate-fadeUp ${["stagger-1", "stagger-2", "stagger-3", "stagger-4", "stagger-5", "stagger-6"][i] ?? "stagger-6"}`}>
                 <SpeciesImage speciesId={r.id} emoji={r.emoji} alt={r.name} className="w-10 h-10" rounded="rounded-full" />
                 <div className="flex-1 min-w-0">
                   <div className="text-sm font-semibold text-neutral-800 truncate">{r.name}を発見！</div>
@@ -199,8 +206,8 @@ function CouponPanel({ coupons }: { coupons: OwnedCoupon[] }) {
             action="クーポンを見る"
           />
         ) : (
-          coupons.map((c) => (
-            <div key={c.id} className="card3d rounded-2xl p-3.5 flex items-center gap-3">
+          coupons.map((c, i) => (
+            <div key={c.id} className={`card3d rounded-2xl p-3.5 flex items-center gap-3 opacity-0-start animate-fadeUp ${["stagger-1", "stagger-2", "stagger-3", "stagger-4", "stagger-5", "stagger-6"][i] ?? "stagger-6"}`}>
               <span className="w-11 h-11 rounded-xl bg-gold-50 text-gold-600 flex items-center justify-center shrink-0">
                 <LuTicket size={20} />
               </span>

@@ -1,7 +1,5 @@
-import RegisterClient from "@/components/RegisterClient";
-
-export const metadata = { title: "BTGO — 新規登録" };
+import AuthClient from "@/components/AuthClient";
 
 export default function RegisterPage() {
-  return <RegisterClient />;
+  return <AuthClient mode="signup" />;
 }

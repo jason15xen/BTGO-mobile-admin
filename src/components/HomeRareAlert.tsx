@@ -31,7 +31,7 @@ export default function HomeRareAlert({ news }: { news: RareAlertNews }) {
         className="card3d rounded-2xl px-3.5 py-3 text-left w-full active:scale-[0.99] transition-transform"
       >
         <div className="text-xs font-semibold text-gold-600 flex items-center gap-1">
-          <LuSparkles size={12} /> レアアラート
+          <LuSparkles size={12} className="animate-sparkle" /> レアアラート
         </div>
         <div className="flex items-center gap-2 mt-1">
           <SpeciesImage speciesId={news.speciesId} emoji={news.emoji} alt={news.nameJa} className="w-9 h-9 shrink-0" rounded="rounded-md" />
@@ -43,9 +43,9 @@ export default function HomeRareAlert({ news }: { news: RareAlertNews }) {
       </button>
 
       {open && (
-        <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-end sm:items-center justify-center" onClick={() => setOpen(false)}>
+        <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-end sm:items-center justify-center modal-backdrop" onClick={() => setOpen(false)}>
           <div
-            className="w-full max-w-[440px] max-h-[88vh] overflow-y-auto no-scrollbar bg-white rounded-t-3xl sm:rounded-3xl shadow-2xl"
+            className="w-full max-w-[440px] max-h-[88vh] overflow-y-auto no-scrollbar bg-white rounded-t-3xl sm:rounded-3xl shadow-2xl modal-sheet"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="relative px-5 pt-5 pb-3 border-b border-neutral-100">

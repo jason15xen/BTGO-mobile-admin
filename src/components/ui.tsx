@@ -49,3 +49,49 @@ export function PageHero({
 export function Card({ children, className = "" }: { children: ReactNode; className?: string }) {
   return <div className={`card3d rounded-3xl p-5 ${className}`}>{children}</div>;
 }
+
+type ProgressTone = "forest" | "gold" | "teal" | "lime" | "aqua";
+
+const FILL_BG: Record<ProgressTone, string> = {
+  forest: "linear-gradient(180deg, #a8e850 0%, #6fcf3f 45%, #2b871f 100%)",
+  gold: "linear-gradient(180deg, #fcd34d 0%, #f59e0b 60%, #d97706 100%)",
+  teal: "linear-gradient(180deg, #2dd4bf 0%, #14b8a6 60%, #0f766e 100%)",
+  lime: "linear-gradient(180deg, #bef264 0%, #84cc16 60%, #4d7c0f 100%)",
+  aqua: "linear-gradient(180deg, #5eead4 0%, #37a626 50%, #0d9488 100%)",
+};
+
+/** Light recessed track with a flush, vivid fill. */
+export function ProgressBar({
+  value,
+  max = 100,
+  tone = "forest",
+  size = "md",
+  shimmer = false,
+  className = "",
+}: {
+  value: number;
+  max?: number;
+  tone?: ProgressTone;
+  size?: "md" | "sm";
+  shimmer?: boolean;
+  className?: string;
+}) {
+  const pct = max > 0 ? Math.min(100, Math.round((value / max) * 100)) : 0;
+  const h = size === "sm" ? "h-2" : "h-4";
+  const trackTone =
+    tone === "forest" || tone === "aqua" ? "" : `progress-track3d--${tone}`;
+  return (
+    <div
+      className={`progress-track3d ${trackTone} ${h} rounded-full ${className}`}
+      role="progressbar"
+      aria-valuenow={pct}
+      aria-valuemin={0}
+      aria-valuemax={100}
+    >
+      <div
+        className={`progress-fill3d transition-all duration-700 ease-out ${shimmer ? "progress-fill-shimmer" : ""} ${pct > 0 ? "min-w-[12px]" : ""}`}
+        style={{ width: `${pct}%`, background: pct > 0 ? FILL_BG[tone] : undefined }}
+      />
+    </div>
+  );
+}

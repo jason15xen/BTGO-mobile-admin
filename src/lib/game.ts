@@ -44,8 +44,8 @@ export interface UserStats {
   xpForLevel: number;
 }
 
-export function computeUserStats(allObs: Observation[]): UserStats {
-  const mine = allObs.filter((o) => o.userId === DEMO_USER.id);
+export function computeUserStats(allObs: Observation[], userId: string = DEMO_USER.id): UserStats {
+  const mine = allObs.filter((o) => o.userId === userId);
   const species = new Set<string>();
   let xp = 0;
   let points = 0;
@@ -70,8 +70,8 @@ export function computeUserStats(allObs: Observation[]): UserStats {
   };
 }
 
-export function myObservations(allObs: Observation[]): Observation[] {
-  return allObs.filter((o) => o.userId === DEMO_USER.id);
+export function myObservations(allObs: Observation[], userId: string = DEMO_USER.id): Observation[] {
+  return allObs.filter((o) => o.userId === userId);
 }
 
 export interface Discovery {
@@ -85,11 +85,11 @@ export interface Discovery {
 }
 
 /** Per-species discovery info for the current user (date, location, count). */
-export function discoveriesByUser(allObs: Observation[]): Record<string, Discovery> {
+export function discoveriesByUser(allObs: Observation[], userId: string = DEMO_USER.id): Record<string, Discovery> {
   const map: Record<string, Discovery> = {};
   const latest: Record<string, string> = {};
   for (const o of allObs) {
-    if (o.userId !== DEMO_USER.id) continue;
+    if (o.userId !== userId) continue;
     const d = map[o.speciesId];
     if (!d) {
       map[o.speciesId] = { count: 1, firstFound: o.observedAt, area: o.area, lat: o.lat, lng: o.lng };

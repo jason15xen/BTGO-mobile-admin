@@ -3,13 +3,18 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev -p 3001",
+    "clean": "node -e \"require('fs').rmSync('.next',{recursive:true,force:true})\"",
+    "dev": "next dev -p 3001 --turbo",
+    "dev:webpack": "next dev -p 3001",
     "dev:https": "next dev -p 3001 --experimental-https --experimental-https-key ./certs/key.pem --experimental-https-cert ./certs/cert.pem",
+    "prebuild": "npm run clean",
     "build": "next build",
     "start": "next start -p 3001",
     "lint": "next lint"
   },
   "dependencies": {
+    "@supabase/ssr": "^0.12.0",
+    "@supabase/supabase-js": "^2.108.0",
     "next": "15.1.11",
     "react": "18.3.1",
     "react-dom": "18.3.1",
