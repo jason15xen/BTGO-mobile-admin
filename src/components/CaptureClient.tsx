@@ -388,7 +388,7 @@ export default function CaptureClient() {
               <div className="text-xs text-neutral-400">{ECOSYSTEM_LABEL[subject.ecosystem]} ピラミッドに追加{isNew && " ・ 新種！"}</div>
             </div>
           </div>
-          <Pyramid ecosystem={subject.ecosystem} discovered={discovered} highlightId={subject.id} compact />
+          <Pyramid ecosystem={subject.ecosystem} discovered={discovered} highlightId={subject.id} embedded />
         </div>
 
         <div className="grid grid-cols-3 gap-3">
