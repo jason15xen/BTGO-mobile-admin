@@ -9,5 +9,5 @@ export default async function EncyclopediaPage() {
   const user = await getCurrentUser();
   const obs = await readObservations();
   const discoveries = discoveriesByUser(obs, resolveUserId(user));
-  return <EncyclopediaClient discoveries={discoveries} />;
+  return <EncyclopediaClient userId={resolveUserId(user)} discoveries={discoveries} />;
 }

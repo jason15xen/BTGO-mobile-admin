@@ -315,6 +315,52 @@ body {
     animation: pulseGlow 1.8s ease-out infinite;
   }
 
+  /* Pyramid tile — first tap selection (second tap opens detail) */
+  @keyframes pyramid-select-pulse {
+    0%, 100% {
+      box-shadow:
+        0 0 0 3px rgba(74, 222, 128, 0.7),
+        0 0 16px 4px rgba(74, 222, 128, 0.4);
+      transform: scale(1.1);
+    }
+    50% {
+      box-shadow:
+        0 0 0 5px rgba(74, 222, 128, 0.4),
+        0 0 22px 8px rgba(74, 222, 128, 0.25);
+      transform: scale(1.15);
+    }
+  }
+
+  @keyframes pyramid-select-pulse-red {
+    0%, 100% {
+      box-shadow:
+        0 0 0 3px rgba(248, 113, 113, 0.85),
+        0 0 16px 4px rgba(239, 68, 68, 0.45);
+      transform: scale(1.1);
+    }
+    50% {
+      box-shadow:
+        0 0 0 5px rgba(248, 113, 113, 0.5),
+        0 0 22px 8px rgba(239, 68, 68, 0.3);
+      transform: scale(1.15);
+    }
+  }
+
+  .pyramid-tile-selected {
+    animation: pyramid-select-pulse 1.6s ease-in-out infinite;
+    z-index: 20;
+  }
+
+  .pyramid-tile-selected--invasive {
+    animation-name: pyramid-select-pulse-red;
+  }
+
+  .pyramid-tile-selected--undiscovered {
+    animation: pyramid-select-pulse 1.6s ease-in-out infinite;
+    background: rgba(220, 252, 231, 0.85);
+    z-index: 20;
+  }
+
   /* Stars eject from tile perimeter — new species */
   .species-starlight__halo {
     position: absolute;

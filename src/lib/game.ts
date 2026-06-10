@@ -33,6 +33,16 @@ export function rewardFor(species: Species): { xp: number; points: number } {
   };
 }
 
+/** PoC: full reward on first discovery, reduced on re-capture. */
+export function rewardForCapture(species: Species, isNewSpecies: boolean): { xp: number; points: number } {
+  const base = rewardFor(species);
+  if (isNewSpecies) return base;
+  return {
+    xp: Math.max(40, Math.round(base.xp * 0.25)),
+    points: Math.max(10, Math.round(base.points * 0.3)),
+  };
+}
+
 export interface UserStats {
   discoveries: number;
   speciesCount: number;

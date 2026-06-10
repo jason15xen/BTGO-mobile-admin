@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import type { IconType } from "react-icons";
 import { FiUser, FiCamera, FiLogOut, FiEdit2 } from "react-icons/fi";
-import { LuFootprints, LuBird, LuTicket, LuActivity } from "react-icons/lu";
+import { LuFootprints, LuBird, LuTicket, LuActivity, LuTrophy } from "react-icons/lu";
 import { useRouter } from "next/navigation";
 import type { AppUser } from "@/lib/auth";
 import type { UserStats } from "@/lib/game";
@@ -81,6 +81,13 @@ export default function ProfileClient({
             <Stat label="登録種" value={stats.speciesCount} />
             <Stat label="B-mile" value={balance} />
           </div>
+
+          <Link
+            href="/ranking"
+            className="mt-3 flex items-center justify-center gap-2 w-full rounded-xl bg-gold-50 border border-gold-100 text-gold-800 text-sm font-semibold py-2.5 active:bg-gold-100"
+          >
+            <LuTrophy size={16} /> 月間ランキングを見る
+          </Link>
 
           <div className="mt-4 flex gap-2">
             {user ? (

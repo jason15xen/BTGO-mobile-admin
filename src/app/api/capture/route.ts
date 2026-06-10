@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { getCurrentUser, isAuthConfigured, resolveUserId, resolveUserName } from "@/lib/auth";
 import { addObservation, readObservations } from "@/lib/dataStore";
 import { SPECIES_BY_ID } from "@/data/species";
-import { rewardFor } from "@/lib/game";
+import { rewardForCapture } from "@/lib/game";
 import type { Observation } from "@/lib/types";
 
 // Always run on the Node.js runtime (fs access), never Edge.
@@ -18,6 +18,20 @@ const SPOTS = [
   { name: "富士市街", lat: 35.161, lng: 138.676 },
   { name: "田子の浦", lat: 35.13, lng: 138.7 },
 ];
+
+export async function GET() {
+  try {
+    const user = await getCurrentUser();
+    const userId = resolveUserId(user);
+    const all = await readObservations();
+    const discovered = Array.from(
+      new Set(all.filter((o) => o.userId === userId).map((o) => o.speciesId)),
+    );
+    return NextResponse.json({ discovered, userId });
+  } catch {
+    return NextResponse.json({ discovered: [], userId: "u-demo" });
+  }
+}
 
 export async function POST(req: Request) {
   try {
@@ -68,10 +82,10 @@ export async function POST(req: Request) {
       /* ignore */
     }
 
-    const reward = rewardFor(species);
     const isNewSpecies = !all.some(
       (o) => o.userId === userId && o.speciesId === speciesId,
     );
+    const reward = rewardForCapture(species, isNewSpecies);
     const myDiscovered = Array.from(
       new Set(
         all
@@ -81,7 +95,7 @@ export async function POST(req: Request) {
       ),
     );
 
-    return NextResponse.json({ observation, reward, isNewSpecies, myDiscovered });
+    return NextResponse.json({ observation, reward, isNewSpecies, myDiscovered, userId });
   } catch (e) {
     // Last-resort guard so the capture flow never breaks the demo.
     return NextResponse.json(

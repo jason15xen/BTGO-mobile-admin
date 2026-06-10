@@ -19,5 +19,5 @@ export default async function PyramidPage() {
     marine: PYRAMID_TOTAL,
   };
 
-  return <PyramidClient discovered={discovered} totals={totals} discoveries={discoveries} />;
+  return <PyramidClient userId={userId} discovered={discovered} totals={totals} discoveries={discoveries} />;
 }

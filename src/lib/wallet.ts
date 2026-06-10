@@ -57,3 +57,9 @@ export function saveBalance(balance: number) {
     /* ignore */
   }
 }
+
+export function creditBalance(amount: number, fallback: number): number {
+  const next = loadBalance(fallback) + amount;
+  saveBalance(next);
+  return next;
+}
