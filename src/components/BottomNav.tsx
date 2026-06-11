@@ -14,7 +14,7 @@ const TABS: { href: string; label: string; Icon: IconType }[] = [
 
 // /capture visibility is controlled by AppShell's immersive state (hidden only
 // during the camera/analyzing phases), so it's not listed here.
-const HIDE_ON = ["/register", "/login"];
+const HIDE_ON: string[] = [];
 
 export default function BottomNav() {
   const pathname = usePathname();

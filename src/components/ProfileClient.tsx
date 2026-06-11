@@ -3,13 +3,14 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import type { IconType } from "react-icons";
-import { FiUser, FiCamera, FiLogOut, FiEdit2 } from "react-icons/fi";
-import { LuFootprints, LuBird, LuTicket, LuActivity, LuTrophy } from "react-icons/lu";
-import { useRouter } from "next/navigation";
-import type { AppUser } from "@/lib/auth";
+import { FiCamera } from "react-icons/fi";
+import { LuFootprints, LuBird, LuTicket, LuActivity, LuTrophy, LuLayers } from "react-icons/lu";
+import { ECOSYSTEM_LABEL } from "@/data/species";
 import type { UserStats } from "@/lib/game";
-import { createClient, isSupabaseConfigured } from "@/lib/supabase/client";
-import { loadBalance, loadOwnedCoupons, type OwnedCoupon } from "@/lib/wallet";
+import { fetchPlayer, fetchWallet, updatePlayer } from "@/lib/gameApi";
+import type { PyramidEcoSummary } from "@/lib/pyramidSummary";
+import type { Ecosystem, UserProfile } from "@/lib/types";
+import type { OwnedCoupon } from "@/lib/wallet";
 import SpeciesImage from "@/components/SpeciesImage";
 import { PageHero, Screen, Card, ProgressBar } from "@/components/ui";
 
@@ -20,6 +21,8 @@ const BADGES: { name: string; Icon: IconType; color: string; text: string }[] = 
   { name: "バードウォッチャー", Icon: LuBird, color: "bg-teal-100", text: "text-teal-600" },
   { name: "自然愛好家", Icon: FiCamera, color: "bg-gold-100", text: "text-gold-600" },
 ];
+
+const AVATAR_PRESETS = ["🌿", "🦊", "🐦", "🦋", "🐢", "🌸", "🗻", "🐸"];
 
 interface Recent {
   id: string;
@@ -32,46 +35,89 @@ interface Recent {
 const fmtDate = (iso: string) => iso.slice(0, 10).replace(/-/g, "/");
 
 export default function ProfileClient({
-  user,
+  initialProfile,
   stats,
   recent,
+  pyramid,
 }: {
-  user: AppUser | null;
+  initialProfile: UserProfile;
   stats: UserStats;
   recent: Recent[];
+  pyramid: Record<Ecosystem, PyramidEcoSummary>;
 }) {
-  const router = useRouter();
+  const [profile, setProfile] = useState(initialProfile);
+  const [nameDraft, setNameDraft] = useState(initialProfile.name);
+  const [saving, setSaving] = useState(false);
   const [coupons, setCoupons] = useState<OwnedCoupon[]>([]);
   const [balance, setBalance] = useState(stats.points);
   const [tab, setTab] = useState<ProfileTab>("activity");
+  const [feedCount, setFeedCount] = useState(0);
 
   useEffect(() => {
-    setCoupons(loadOwnedCoupons());
-    setBalance(loadBalance(stats.points));
+    fetchWallet().then((w) => {
+      setBalance(w.balance);
+      setCoupons(w.coupons);
+    });
+    fetchPlayer().then((p) => {
+      if (p?.game?.feeds) setFeedCount(p.game.feeds.length);
+    });
   }, [stats.points]);
 
-  async function signOut() {
-    if (isSupabaseConfigured()) {
-      const supabase = createClient();
-      await supabase.auth.signOut();
+  async function saveProfile(patch: Partial<Pick<UserProfile, "name" | "avatar">>) {
+    setSaving(true);
+    const updated = await updatePlayer(patch);
+    if (updated) {
+      setProfile(updated);
+      setNameDraft(updated.name);
     }
-    router.push("/");
-    router.refresh();
+    setSaving(false);
   }
 
-  const name = user?.name ?? "ゲスト";
+  async function onNameBlur() {
+    const trimmed = nameDraft.trim();
+    if (!trimmed || trimmed === profile.name) return;
+    await saveProfile({ name: trimmed });
+  }
 
   return (
     <div className="min-h-full bg-forest-50">
-      <PageHero title="マイページ" subtitle={user?.email ?? "ゲストモード — ログインして記録を保存"} gradient="from-forest-500 to-teal-700" />
+      <PageHero title="マイページ" subtitle="富士の自然探索" gradient="from-forest-500 to-teal-700" />
       <Screen className="space-y-4">
         <Card className="-mt-9 relative z-10 text-center">
-          <div className="w-20 h-20 mx-auto rounded-full bg-gradient-to-b from-forest-100 to-forest-200 text-forest-600 flex items-center justify-center tile3d">
-            <FiUser size={38} />
+          <div className="w-20 h-20 mx-auto rounded-full bg-gradient-to-b from-forest-100 to-forest-200 flex items-center justify-center text-4xl tile3d">
+            {profile.avatar}
           </div>
-          <div className="mt-2 text-lg font-bold text-neutral-900">{name}</div>
-          <div className="text-xs text-neutral-400">
-            {user?.region ? `${user.region} ・ ` : ""}Lv.{stats.level} {stats.title}
+
+          <div className="flex flex-wrap justify-center gap-1.5 mt-3 px-2">
+            {AVATAR_PRESETS.map((emoji) => (
+              <button
+                key={emoji}
+                type="button"
+                disabled={saving}
+                onClick={() => saveProfile({ avatar: emoji })}
+                className={`w-9 h-9 rounded-full text-lg flex items-center justify-center border transition-colors ${
+                  profile.avatar === emoji
+                    ? "border-forest-500 bg-forest-50 ring-2 ring-forest-200"
+                    : "border-neutral-200 bg-white active:bg-forest-50"
+                }`}
+              >
+                {emoji}
+              </button>
+            ))}
+          </div>
+
+          <input
+            type="text"
+            value={nameDraft}
+            onChange={(e) => setNameDraft(e.target.value)}
+            onBlur={onNameBlur}
+            maxLength={20}
+            className="mt-3 w-full max-w-[220px] mx-auto block text-center text-lg font-bold text-neutral-900 bg-forest-50 border border-forest-100 rounded-xl px-3 py-2 outline-none focus:border-forest-400"
+            placeholder="ユーザー名"
+          />
+
+          <div className="text-xs text-neutral-400 mt-2">
+            Lv.{stats.level} {stats.title}
           </div>
           <ProgressBar value={stats.xpInLevel} max={stats.xpForLevel} tone="gold" className="mt-3" />
           <div className="text-[11px] text-neutral-400 mt-1">{stats.xpInLevel} / {stats.xpForLevel} XP</div>
@@ -88,26 +134,33 @@ export default function ProfileClient({
           >
             <LuTrophy size={16} /> 月間ランキングを見る
           </Link>
-
-          <div className="mt-4 flex gap-2">
-            {user ? (
-              <button onClick={signOut} className="flex-1 flex items-center justify-center gap-1.5 text-sm font-semibold text-neutral-600 bg-neutral-100 rounded-xl py-2.5">
-                <FiLogOut size={15} /> ログアウト
-              </button>
-            ) : (
-              <Link href="/login" className="flex-1 flex items-center justify-center gap-1.5 text-sm font-semibold text-white bg-forest-600 rounded-xl py-2.5">
-                <FiUser size={15} /> ログイン
-              </Link>
-            )}
-            {!user && (
-              <Link href="/register" className="flex items-center justify-center gap-1.5 text-sm font-semibold text-neutral-600 bg-neutral-100 rounded-xl py-2.5 px-4">
-                <FiEdit2 size={15} /> 登録
-              </Link>
-            )}
-          </div>
         </Card>
 
-        {/* Tabs */}
+        <Card className="!p-4">
+          <div className="flex items-center gap-2 text-sm font-bold text-neutral-800 mb-3">
+            <LuLayers size={16} className="text-forest-600" />
+            ピラミッド進捗
+            <span className="ml-auto text-xs font-normal text-neutral-400">餌 {feedCount} 個</span>
+          </div>
+          <div className="space-y-2">
+            {(["terrestrial", "freshwater", "marine"] as Ecosystem[]).map((eco) => {
+              const p = pyramid[eco];
+              return (
+                <div key={eco}>
+                  <div className="flex justify-between text-xs mb-1">
+                    <span className="text-neutral-600">{ECOSYSTEM_LABEL[eco]}</span>
+                    <span className="font-semibold text-forest-700">{p.found}/{p.total} 種 · {p.pct}%</span>
+                  </div>
+                  <ProgressBar value={p.pct} size="sm" />
+                </div>
+              );
+            })}
+          </div>
+          <Link href="/pyramid" className="block text-center text-xs font-semibold text-forest-600 mt-3">
+            ピラミッドを見る →
+          </Link>
+        </Card>
+
         <div className="flex gap-1 rounded-2xl bg-white p-1 ring-1 ring-black/5 shadow-md">
           <button
             type="button"

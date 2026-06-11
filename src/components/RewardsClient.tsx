@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { LuX, LuMapPin, LuSearch, LuStore, LuPartyPopper } from "react-icons/lu";
 import type { UserStats } from "@/lib/game";
-import { addOwnedCoupon, loadBalance, saveBalance } from "@/lib/wallet";
+import { fetchWallet, purchaseCouponApi } from "@/lib/gameApi";
 import { PageHero, Screen } from "@/components/ui";
 import {
   COUPON_TYPES,
@@ -35,7 +35,7 @@ export default function RewardsClient({ stats }: { stats: UserStats }) {
   const [purchase, setPurchase] = useState<PurchaseResult | null>(null);
 
   useEffect(() => {
-    setBalance(loadBalance(stats.points));
+    fetchWallet().then((w) => setBalance(w.balance));
   }, [stats.points]);
 
   function requestPurchase(storeName: string, coupon: CouponOffer, discounted: boolean) {
@@ -52,13 +52,18 @@ export default function RewardsClient({ stats }: { stats: UserStats }) {
     setFullPriceOpen(false);
   }
 
-  function completePurchase(done: PendingPurchase) {
-    setBalance((b) => {
-      const next = b - done.cost;
-      saveBalance(next);
-      return next;
+  async function completePurchase(done: PendingPurchase) {
+    const result = await purchaseCouponApi({
+      storeName: done.storeName,
+      label: done.coupon.label,
+      cost: done.cost,
     });
-    addOwnedCoupon({ storeName: done.storeName, label: done.coupon.label, cost: done.cost });
+    if (!result.ok) {
+      setProcessing(null);
+      alert(result.error === "insufficient_balance" ? "B-mileが足りません" : "購入に失敗しました");
+      return;
+    }
+    setBalance(result.balance);
     setPurchase({ storeName: done.storeName, couponLabel: done.coupon.label, cost: done.cost });
     setProcessing(null);
   }

@@ -1,14 +1,24 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { FiUser } from "react-icons/fi";
 import Logo from "@/components/Logo";
+import { fetchPlayer } from "@/lib/gameApi";
 
-const HIDE_ON = ["/register", "/login", "/capture"];
+const HIDE_ON = ["/capture"];
 
 export default function TopNav() {
   const pathname = usePathname();
+  const [avatar, setAvatar] = useState<string | null>(null);
+
+  useEffect(() => {
+    fetchPlayer().then((p) => {
+      if (p?.profile?.avatar) setAvatar(p.profile.avatar);
+    });
+  }, [pathname]);
+
   if (HIDE_ON.includes(pathname)) return null;
 
   return (
@@ -20,9 +30,9 @@ export default function TopNav() {
         <Link
           href="/profile"
           aria-label="マイページ"
-          className="w-9 h-9 rounded-full bg-gradient-to-b from-white to-neutral-100 active:bg-neutral-200 tile3d flex items-center justify-center text-neutral-600 transition-colors"
+          className="w-9 h-9 rounded-full bg-gradient-to-b from-white to-neutral-100 active:bg-neutral-200 tile3d flex items-center justify-center text-neutral-600 transition-colors text-lg"
         >
-          <FiUser size={18} />
+          {avatar ?? <FiUser size={18} />}
         </Link>
       </div>
     </header>

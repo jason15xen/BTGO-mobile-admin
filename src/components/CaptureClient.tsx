@@ -5,13 +5,7 @@ import { useRouter } from "next/navigation";
 import { SPECIES, ECOSYSTEM_LABEL } from "@/data/species";
 import { SPECIES_INFO } from "@/data/speciesInfo";
 import { ECO_THEME } from "@/lib/theme";
-import { DEMO_B_MILE_BALANCE, rewardForCapture } from "@/lib/game";
-import {
-  addDiaryEntry,
-  createIndividual,
-  grantFeed,
-} from "@/lib/creatureStore";
-import { creditBalance } from "@/lib/wallet";
+import { rewardForCapture } from "@/lib/game";
 import type { Species } from "@/lib/types";
 import Pyramid from "@/components/Pyramid";
 import SpeciesImage from "@/components/SpeciesImage";
@@ -171,25 +165,6 @@ export default function CaptureClient() {
     reader.readAsDataURL(file);
   }
 
-  function persistCaptureLocal(
-    uid: string,
-    species: Species,
-    obsId: string,
-    rw: { xp: number; points: number },
-  ) {
-    createIndividual(uid, species.id);
-    const feed = grantFeed(uid, species.id);
-    setFeedGain(feed.pwValue);
-    addDiaryEntry({
-      id: obsId,
-      speciesId: species.id,
-      userId: uid,
-      photoData: shot ?? undefined,
-      observedAt: new Date().toISOString(),
-    });
-    creditBalance(rw.points, DEMO_B_MILE_BALANCE);
-  }
-
   async function register() {
     if (!subject) return;
     setPhase("saving");
@@ -198,31 +173,20 @@ export default function CaptureClient() {
       const res = await fetch("/api/capture", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ speciesId: subject.id }),
+        body: JSON.stringify({ speciesId: subject.id, photoData: shot ?? undefined }),
       });
       const data = await res.json().catch(() => ({}));
-      if (res.status === 401) {
-        alert("記録を保存するにはログインが必要です。");
-        router.push("/login");
-        setPhase("result");
-        return;
-      }
       const rw = data.reward ?? rewardForCapture(subject, guessedNew);
       const uid = data.userId ?? userId;
-      const obsId = data.observation?.id ?? `obs-local-${Date.now()}`;
-      persistCaptureLocal(uid, subject, obsId, rw);
       setUserId(uid);
       setReward(rw);
       setIsNew(data.isNewSpecies ?? guessedNew);
+      setFeedGain(data.feed?.pwValue ?? null);
       setDiscovered(new Set<string>(data.myDiscovered ?? [...discovered, subject.id]));
       setPhase("reflection");
     } catch {
-      const rw = rewardForCapture(subject, guessedNew);
-      persistCaptureLocal(userId, subject, `obs-local-${Date.now()}`, rw);
-      setReward(rw);
-      setIsNew(guessedNew);
-      setDiscovered(new Set([...discovered, subject.id]));
-      setPhase("reflection");
+      alert("登録に失敗しました。もう一度お試しください。");
+      setPhase("result");
     }
   }
 
@@ -451,7 +415,14 @@ export default function CaptureClient() {
               <div className="text-xs text-neutral-400">{ECOSYSTEM_LABEL[subject.ecosystem]} ピラミッドに追加{isNew && " ・ 新種！"}</div>
             </div>
           </div>
-          <Pyramid ecosystem={subject.ecosystem} discovered={discovered} highlightId={subject.id} embedded />
+          <Pyramid
+            ecosystem={subject.ecosystem}
+            discovered={discovered}
+            activeIds={new Set([subject.id])}
+            pwMap={{ [subject.id]: 10 }}
+            highlightId={subject.id}
+            embedded
+          />
         </div>
 
         <div className="grid grid-cols-2 gap-3">
@@ -460,7 +431,7 @@ export default function CaptureClient() {
           <Stat label="餌（素材）" value={feedGain ? `+1（+${feedGain}pw）` : "+1"} className="stagger-6" />
           <Stat label="登録種数" value={`${discovered.size}`} className="stagger-6" />
         </div>
-        <p className="text-xs text-center text-neutral-500">ピラミッド画面で餌をタップするだけで上位の生き物に与えられます</p>
+        <p className="text-xs text-center text-neutral-500">ピラミッド画面で餌をドラッグして上位の生き物に与えられます</p>
 
         <div className="grid grid-cols-2 gap-3 opacity-0-start animate-fadeUp stagger-6">
           <button onClick={() => router.push("/encyclopedia")} className="bg-white border-[1.5px] border-neutral-200 text-neutral-700 font-semibold rounded-2xl py-3.5">

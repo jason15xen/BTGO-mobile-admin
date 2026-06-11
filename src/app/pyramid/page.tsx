@@ -1,16 +1,13 @@
-import { getCurrentUser, resolveUserId } from "@/lib/auth";
 import { readObservations } from "@/lib/dataStore";
-import { discoveriesByUser } from "@/lib/game";
+import { DEMO_USER, discoveriesByUser } from "@/lib/game";
 import { PYRAMID_TOTAL } from "@/data/species";
 import PyramidClient from "@/components/PyramidClient";
 
 export const dynamic = "force-dynamic";
 
 export default async function PyramidPage() {
-  const user = await getCurrentUser();
-  const userId = resolveUserId(user);
   const obs = await readObservations();
-  const discoveries = discoveriesByUser(obs, userId);
+  const discoveries = discoveriesByUser(obs, DEMO_USER.id);
   const discovered = Object.keys(discoveries);
 
   const totals = {
@@ -19,5 +16,5 @@ export default async function PyramidPage() {
     marine: PYRAMID_TOTAL,
   };
 
-  return <PyramidClient userId={userId} discovered={discovered} totals={totals} discoveries={discoveries} />;
+  return <PyramidClient userId={DEMO_USER.id} discovered={discovered} totals={totals} discoveries={discoveries} />;
 }

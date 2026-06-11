@@ -1,5 +1,10 @@
-import AuthClient from "@/components/AuthClient";
+import { redirect } from "next/navigation";
 
-export default function LoginPage() {
-  return <AuthClient mode="login" />;
+type Props = { searchParams: Promise<{ next?: string }> };
+
+export default async function LoginPage({ searchParams }: Props) {
+  const { next } = await searchParams;
+  const dest =
+    next && next.startsWith("/") && !next.startsWith("//") ? next : "/";
+  redirect(dest);
 }

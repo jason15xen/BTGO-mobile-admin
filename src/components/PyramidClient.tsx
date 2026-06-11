@@ -1,24 +1,19 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { LuLightbulb, LuX, LuInfo, LuUtensils } from "react-icons/lu";
+import { slotHintFor } from "@/lib/slotHint";
 import Pyramid from "@/components/Pyramid";
 import { ECOSYSTEM_LABEL, SPECIES_BY_ID } from "@/data/species";
 import { SPECIES_INFO } from "@/data/speciesInfo";
 import { ECO_THEME } from "@/lib/theme";
-import {
-  bootstrapIndividuals,
-  feedOneClick,
-  hasInvasiveDiscovered,
-  loadUserFeeds,
-  pwBySpecies,
-  validPredatorsForFeed,
-} from "@/lib/creatureStore";
-import type { FeedItem } from "@/lib/types";
+import { validPredatorsForFeed } from "@/lib/feedRules";
+import { fetchGameState, postFeed } from "@/lib/gameApi";
+import type { Ecosystem, FeedItem } from "@/lib/types";
 import { PageHero, Screen, Card, ProgressBar } from "@/components/ui";
 import SpeciesDetailSheet from "@/components/SpeciesDetailSheet";
 import type { Discovery } from "@/lib/game";
-import type { Ecosystem, Species } from "@/lib/types";
+import type { Species } from "@/lib/types";
 
 const TABS: { key: Ecosystem }[] = [{ key: "terrestrial" }, { key: "freshwater" }, { key: "marine" }];
 
@@ -56,28 +51,33 @@ export default function PyramidClient({
   const [help, setHelp] = useState(false);
   const [feeds, setFeeds] = useState<FeedItem[]>([]);
   const [pwMap, setPwMap] = useState<Record<string, number>>({});
-  const [invasiveThreat, setInvasiveThreat] = useState(false);
+  const [activeIds, setActiveIds] = useState<Set<string>>(new Set());
   const [mounted, setMounted] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
   const [highlightedId, setHighlightedId] = useState<string | null>(null);
-  const set = new Set(discovered);
+  const [dragFeed, setDragFeed] = useState<FeedItem | null>(null);
+  const [feedHoverId, setFeedHoverId] = useState<string | null>(null);
+  const [dragPos, setDragPos] = useState<{ x: number; y: number } | null>(null);
+  const dragRef = useRef<FeedItem | null>(null);
+  const set = useMemo(() => new Set(discovered), [discovered]);
 
-  const refreshGame = useCallback(() => {
-    bootstrapIndividuals(userId, discovered);
-    setFeeds(loadUserFeeds(userId));
-    setPwMap(pwBySpecies(userId));
-  }, [userId, discovered]);
+  const [invasive, setInvasive] = useState<Record<Ecosystem, boolean>>({
+    terrestrial: false,
+    freshwater: false,
+    marine: false,
+  });
 
-  // localStorage-backed UI must not run during SSR / first paint (hydration-safe).
+  const refreshGame = useCallback(async () => {
+    const state = await fetchGameState();
+    setFeeds(state.feeds);
+    setPwMap(state.pwMap);
+    setActiveIds(new Set(state.activeIds));
+    setInvasive(state.invasive);
+  }, []);
+
   useEffect(() => {
-    refreshGame();
-    setMounted(true);
-  }, [refreshGame]);
-
-  useEffect(() => {
-    if (!mounted) return;
-    setInvasiveThreat(hasInvasiveDiscovered(userId, eco));
-  }, [mounted, userId, eco, feeds, pwMap]);
+    refreshGame().finally(() => setMounted(true));
+  }, [refreshGame, userId, discovered]);
 
   useEffect(() => {
     if (!toast) return;
@@ -88,30 +88,141 @@ export default function PyramidClient({
   const total = totals[eco] ?? 0;
   const found = discovered.filter((id) => id.startsWith(eco[0] + "-")).length;
   const pct = total ? Math.round((found / total) * 100) : 0;
+  const invasiveThreat = mounted && invasive[eco];
   const ecoFeeds = mounted ? feeds.filter((f) => f.ecosystem === eco) : [];
   const totalFeeds = mounted ? feeds.length : 0;
   const feedsOnOtherTab = totalFeeds > 0 && ecoFeeds.length === 0;
 
-  function onTileSelect(s: Species, foundTile: boolean) {
+  function onTileSelect(s: Species, activeTile: boolean) {
     if (highlightedId === s.id) {
       setHighlightedId(null);
-      setSel({ s, found: foundTile });
+      setSel({ s, found: activeTile });
       return;
     }
     setSel(null);
     setHighlightedId(s.id);
   }
 
-  function onFeedClick(f: FeedItem) {
+  const feedDropTargets = useMemo(() => {
+    if (!dragFeed) return new Set<string>();
+    return new Set(validPredatorsForFeed(dragFeed, set).map((p) => p.id));
+  }, [dragFeed, set]);
+
+  function speciesAtPoint(x: number, y: number, allowed?: Set<string>): string | null {
+    for (const el of document.elementsFromPoint(x, y)) {
+      const id = el.closest("[data-drop-species]")?.getAttribute("data-drop-species");
+      if (id && (!allowed || allowed.has(id))) return id;
+    }
+    return null;
+  }
+
+  function clearFeedDrag() {
+    dragRef.current = null;
+    setDragFeed(null);
+    setFeedHoverId(null);
+    setDragPos(null);
+    document.body.style.touchAction = "";
+    document.body.style.userSelect = "";
+  }
+
+  async function dropFeedOn(feed: FeedItem, targetSpeciesId: string) {
     if (!mounted) return;
-    const result = feedOneClick(userId, f.id, set, pwMap);
-    if (result === "no-predator") {
-      setToast("まだひとつ上の段階の生き物を発見していません");
+    const result = await postFeed(feed.id, targetSpeciesId);
+    if (!result.ok) {
+      if (result.reason === "no-predator") {
+        setToast("まだひとつ上の段階の生き物を発見していません");
+      } else if (result.reason === "invalid-target") {
+        setToast("この生き物には餌を与えられません");
+      }
       return;
     }
-    if (!result) return;
     setToast(`${result.predatorName} が餌を食べて +${result.gained}pw！（現在 ${result.newPw}pw）`);
     refreshGame();
+  }
+
+  function startFeedDrag(feed: FeedItem, e: React.PointerEvent<HTMLElement>) {
+    const predators = validPredatorsForFeed(feed, set);
+    if (predators.length === 0 || feed.trophicLevel >= 4) return;
+    e.preventDefault();
+    e.stopPropagation();
+
+    const handle = e.currentTarget;
+    const pointerId = e.pointerId;
+    const targetIds = new Set(predators.map((p) => p.id));
+    dragRef.current = feed;
+    setDragFeed(feed);
+    setDragPos({ x: e.clientX, y: e.clientY });
+    setFeedHoverId(speciesAtPoint(e.clientX, e.clientY, targetIds));
+    document.body.style.touchAction = "none";
+    document.body.style.userSelect = "none";
+
+    try {
+      handle.setPointerCapture(pointerId);
+    } catch {
+      /* capture unsupported — window listeners below still handle the drag */
+    }
+
+    const onMove = (ev: PointerEvent) => {
+      if (ev.pointerId !== pointerId) return;
+      setDragPos({ x: ev.clientX, y: ev.clientY });
+      setFeedHoverId(speciesAtPoint(ev.clientX, ev.clientY, targetIds));
+    };
+
+    const onEnd = (ev: PointerEvent) => {
+      if (ev.pointerId !== pointerId) return;
+      cleanup();
+      const feedItem = dragRef.current;
+      const targetId = speciesAtPoint(ev.clientX, ev.clientY, targetIds);
+      clearFeedDrag();
+      if (feedItem && targetId) {
+        void dropFeedOn(feedItem, targetId);
+      }
+    };
+
+    const cleanup = () => {
+      handle.removeEventListener("pointermove", onMove);
+      handle.removeEventListener("pointerup", onEnd);
+      handle.removeEventListener("pointercancel", onEnd);
+      window.removeEventListener("pointermove", onMove);
+      window.removeEventListener("pointerup", onEnd);
+      window.removeEventListener("pointercancel", onEnd);
+      try {
+        handle.releasePointerCapture(pointerId);
+      } catch {
+        /* already released */
+      }
+    };
+
+    handle.addEventListener("pointermove", onMove);
+    handle.addEventListener("pointerup", onEnd);
+    handle.addEventListener("pointercancel", onEnd);
+    window.addEventListener("pointermove", onMove);
+    window.addEventListener("pointerup", onEnd);
+    window.addEventListener("pointercancel", onEnd);
+  }
+
+  function startNativeFeedDrag(feed: FeedItem, e: React.DragEvent<HTMLElement>) {
+    const predators = validPredatorsForFeed(feed, set);
+    if (predators.length === 0 || feed.trophicLevel >= 4) {
+      e.preventDefault();
+      return;
+    }
+    dragRef.current = feed;
+    setDragFeed(feed);
+    e.dataTransfer.setData("application/feed-id", feed.id);
+    e.dataTransfer.effectAllowed = "move";
+  }
+
+  function endNativeFeedDrag() {
+    if (!dragRef.current) return;
+    clearFeedDrag();
+  }
+
+  async function onFeedDropOnTile(targetSpeciesId: string) {
+    const feed = dragRef.current ?? dragFeed;
+    if (!feed) return;
+    await dropFeedOn(feed, targetSpeciesId);
+    clearFeedDrag();
   }
 
   return (
@@ -167,13 +278,18 @@ export default function PyramidClient({
           <Pyramid
             ecosystem={eco}
             discovered={set}
+            activeIds={mounted ? activeIds : undefined}
             pwMap={mounted ? pwMap : undefined}
             invasiveThreat={invasiveThreat}
             selectedId={highlightedId}
             onSelect={onTileSelect}
+            feedDropTargets={dragFeed ? feedDropTargets : undefined}
+            feedHoverId={feedHoverId}
+            onFeedHover={setFeedHoverId}
+            onFeedDrop={(id) => void onFeedDropOnTile(id)}
           />
 
-          {/* Feed / predation (tap-to-feed PoC) */}
+          {/* Feed / predation — drag onto pyramid */}
           <div className="mt-4 rounded-2xl bg-neutral-50 border border-neutral-100 p-3">
             <div className="flex items-center gap-2 text-sm font-bold text-neutral-700">
               <LuUtensils size={15} className="text-forest-600" />
@@ -189,11 +305,13 @@ export default function PyramidClient({
                   : "撮影して「図鑑に登録する」まで完了すると、餌が1つもらえます。"}
               </p>
             ) : (
-              <div className="flex gap-2 mt-2 overflow-x-auto no-scrollbar">
+              <div
+                className={`flex gap-2 mt-2 no-scrollbar ${dragFeed ? "overflow-hidden" : "overflow-x-auto"}`}
+              >
                 {ecoFeeds.map((f) => {
                   const src = SPECIES_BY_ID[f.sourceSpeciesId];
                   const targets = validPredatorsForFeed(f, set);
-                  const canFeed = targets.length > 0;
+                  const canFeed = targets.length > 0 && f.trophicLevel < 4;
                   const blocked =
                     f.trophicLevel >= 4
                       ? "頂点の餌は使えません"
@@ -204,18 +322,24 @@ export default function PyramidClient({
                     <button
                       key={f.id}
                       type="button"
-                      onClick={() => onFeedClick(f)}
                       disabled={!canFeed}
+                      draggable={canFeed}
+                      onPointerDown={(e) => {
+                        if (e.pointerType === "mouse") return;
+                        startFeedDrag(f, e);
+                      }}
+                      onDragStart={(e) => startNativeFeedDrag(f, e)}
+                      onDragEnd={endNativeFeedDrag}
                       title={blocked ?? undefined}
-                      className={`shrink-0 rounded-xl px-3 py-2 text-left border transition-colors ${
+                      className={`shrink-0 rounded-xl px-3 py-2 text-left border transition-colors touch-none select-none ${
                         canFeed
-                          ? "bg-white text-neutral-700 border-neutral-200 active:bg-forest-50 active:border-forest-300"
-                          : "bg-neutral-100 text-neutral-400 border-neutral-100 opacity-60"
-                      }`}
+                          ? "bg-white text-neutral-700 border-neutral-200 cursor-grab active:cursor-grabbing active:bg-forest-50 active:border-forest-300"
+                          : "bg-neutral-100 text-neutral-400 border-neutral-100 opacity-60 cursor-not-allowed"
+                      } ${dragFeed?.id === f.id ? "opacity-40 scale-95" : ""}`}
                     >
                       <div className="text-[11px] font-bold truncate max-w-[100px]">{src?.nameJa ?? "餌"}</div>
                       {canFeed ? (
-                        <div className="text-[10px] text-forest-600 font-semibold">タップで与える +{f.pwValue}pw</div>
+                        <div className="text-[10px] text-forest-600 font-semibold">ドラッグで与える +{f.pwValue}pw</div>
                       ) : (
                         <div className="text-[10px] text-neutral-400">{blocked}</div>
                       )}
@@ -227,10 +351,26 @@ export default function PyramidClient({
           </div>
 
           <p className="mt-3 text-center text-xs text-neutral-400">
-            {highlightedId ? "もう一度タップで詳細を表示" : "タップで選択 → もう一度タップで詳細"}
+            {dragFeed
+              ? "上位の生き物の枠にドロップして餌を与えよう"
+              : highlightedId
+              ? "もう一度タップで詳細を表示"
+              : "タップで選択 → もう一度タップで詳細"}
           </p>
         </Card>
       </Screen>
+
+      {dragFeed && dragPos && (
+        <div
+          className="fixed z-[60] pointer-events-none rounded-xl px-3 py-2 bg-white border-2 border-forest-500 shadow-lg text-left"
+          style={{ left: dragPos.x + 12, top: dragPos.y + 12 }}
+        >
+          <div className="text-[11px] font-bold text-neutral-800">
+            {SPECIES_BY_ID[dragFeed.sourceSpeciesId]?.nameJa ?? "餌"}
+          </div>
+          <div className="text-[10px] text-forest-600 font-semibold">+{dragFeed.pwValue}pw</div>
+        </div>
+      )}
 
       {toast && (
         <div className="fixed bottom-24 left-1/2 -translate-x-1/2 z-50 bg-forest-800 text-white text-sm font-semibold px-4 py-2.5 rounded-full shadow-lg animate-fadeIn">
@@ -263,8 +403,10 @@ function HelpSheet({ onClose }: { onClose: () => void }) {
           </div>
         </div>
         <div className="px-6 pb-7 space-y-3">
-          <HelpRow title="食物連鎖を完成させよう" body="各生態系に10種類（1→2→3→4段）の枠があります。発見した生き物がピラミッドに並びます。" />
-          <HelpRow title="餌で成長" body="撮影で餌がもらえます。餌を1回タップするだけで、ひとつ上の段階の生き物（いちばん弱い個体）に与えられ、生命力（pw）が回復します。" />
+          <HelpRow title="食物連鎖を完成させよう" body="各生態系に10種類（1→2→3→4段）の枠があります。撮影で生き物がピラミッドに並び、最初は10pwでスタートします。" />
+          <HelpRow title="生命力（pw）" body="毎日1pwずつ減り、0になるとピラミッドから消えます。空いた枠には種類名なしのヒント（カテゴリ・生息環境など）が表示されます。" />
+          <HelpRow title="餌で成長" body="撮影のたびに餌（pw）がもらえます。肉食ほど多く、草食ほど少ないです。餌をドラッグして上位の生き物にドロップするとpwが回復します。" />
+          <HelpRow title="生命力と大きさ" body="pwが低い個体は小さく、高い個体は大きく表示されます。毎日1pwずつ減っていきます。" />
           <HelpRow title="詳細を見る" body="タップで枠が光って強調されます。もう一度同じ枠をタップすると詳細（未発見はヒント）が開きます。時間をおいてもOKです。" />
           <HelpRow title="外来種に注意" body="外来種は赤枠で表示され、ピラミッドの色調が変わります。報告するとB-mileがもらえます。" />
           <button onClick={onClose} className="w-full mt-2 bg-forest-600 text-white font-bold rounded-xl py-3">とじる</button>
@@ -286,6 +428,8 @@ function HelpRow({ title, body }: { title: string; body: string }) {
 function HintSheet({ s, onClose }: { s: Species; onClose: () => void }) {
   const info = SPECIES_INFO[s.id];
   const ecoHint = ECO_HINT[s.ecosystem];
+  const hint = slotHintFor(s);
+  const HintIcon = hint.Icon;
   return (
     <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-end sm:items-center justify-center modal-backdrop" onClick={onClose}>
       <div className="w-full max-w-[440px] bg-white rounded-t-3xl sm:rounded-3xl overflow-hidden shadow-2xl modal-sheet" onClick={(e) => e.stopPropagation()}>
@@ -293,9 +437,17 @@ function HintSheet({ s, onClose }: { s: Species; onClose: () => void }) {
           <button onClick={onClose} className="absolute right-4 top-4 w-8 h-8 rounded-full bg-neutral-100 flex items-center justify-center text-neutral-500">
             <LuX size={16} />
           </button>
-          <div className="w-20 h-20 mx-auto rounded-full bg-neutral-100 border border-dashed border-neutral-300 flex items-center justify-center text-3xl text-neutral-300">？</div>
-          <div className="mt-3 font-bold text-neutral-800">まだ発見していない生き物</div>
-          <div className="text-xs text-neutral-400">{ECOSYSTEM_LABEL[s.ecosystem]} ・ 栄養段階 Lv.{s.trophicLevel}</div>
+          <div
+            className={`w-20 h-20 mx-auto rounded-2xl border border-dashed border-neutral-300 bg-gradient-to-br ${hint.bgClass} flex flex-col items-center justify-center gap-1`}
+          >
+            <HintIcon size={28} className={hint.iconClass} />
+            <span className={`text-[10px] font-bold ${hint.rarityClass}`}>{hint.rarityLabel}</span>
+          </div>
+          <div className="mt-3 font-bold text-neutral-800">この枠には誰がいる？</div>
+          <div className="text-xs text-neutral-500 mt-1">写真はまだありませんが、ヒントから推測できます</div>
+          <div className="text-xs text-neutral-400 mt-1">
+            {ECOSYSTEM_LABEL[s.ecosystem]} ・ {s.category} ・ 栄養段階 Lv.{s.trophicLevel}
+          </div>
           <div className="mt-4 bg-gold-50 border border-gold-100 rounded-2xl p-4 text-left space-y-2">
             <div className="text-xs font-bold text-gold-600 flex items-center gap-1"><LuLightbulb size={13} /> 撮影ヒント</div>
             <HintLine label="生息環境" value={info?.habitat ?? "野外"} />

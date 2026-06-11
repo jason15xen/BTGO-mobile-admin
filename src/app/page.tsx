@@ -4,17 +4,17 @@ import { LuLeaf } from "react-icons/lu";
 import HomeRareAlert from "@/components/HomeRareAlert";
 import UserGreeting from "@/components/UserGreeting";
 import { ProgressBar } from "@/components/ui";
-import { getCurrentUser, resolveUserId } from "@/lib/auth";
 import { readObservations } from "@/lib/dataStore";
 import { computeUserStats } from "@/lib/game";
+import { getGuestProfile } from "@/lib/guestStore";
 import { SPECIES } from "@/data/species";
 
 export const dynamic = "force-dynamic";
 
 export default async function HomePage() {
-  const user = await getCurrentUser();
+  const user = getGuestProfile();
   const obs = await readObservations();
-  const stats = computeUserStats(obs, resolveUserId(user));
+  const stats = computeUserStats(obs, user.id);
 
   const latestDate = obs[0]?.observedAt.slice(0, 10);
   const todaySpecies = new Set(obs.filter((o) => o.observedAt.slice(0, 10) === latestDate).map((o) => o.speciesId)).size;
@@ -31,25 +31,24 @@ export default async function HomePage() {
 
   return (
     <div className="flex flex-col min-h-full px-5 pt-5 pb-5 gap-4">
-      {/* Greeting + headline */}
       <header className="opacity-0-start animate-fadeUp">
-        <p className="text-sm text-forest-500"><UserGreeting initialName={user?.name} /></p>
+        <p className="text-sm text-forest-500">
+          <UserGreeting initialName={user.name} />
+        </p>
         <h1 className="text-[27px] leading-snug font-extrabold tracking-tight text-forest-800 mt-1">
           富士の自然探索へ<br />出かけよう！
         </h1>
       </header>
 
-      {/* Level */}
       <section className="opacity-0-start animate-fadeUp stagger-1">
-        <div className="flex items-center gap-2">
-          <span className="bg-gradient-to-b from-forest-500 to-forest-700 text-white text-[11px] font-bold rounded-full px-2.5 py-0.5 badge3d">Lv.{stats.level}</span>
-          <span className="font-semibold text-forest-800 text-sm">{stats.title}</span>
-          <span className="ml-auto text-xs text-neutral-400">{stats.xpInLevel} / {stats.xpForLevel} XP</span>
-        </div>
-        <ProgressBar value={stats.xpInLevel} max={stats.xpForLevel} shimmer className="mt-2" />
-      </section>
+          <div className="flex items-center gap-2">
+            <span className="bg-gradient-to-b from-forest-500 to-forest-700 text-white text-[11px] font-bold rounded-full px-2.5 py-0.5 badge3d">Lv.{stats.level}</span>
+            <span className="font-semibold text-forest-800 text-sm">{stats.title}</span>
+            <span className="ml-auto text-xs text-neutral-400">{stats.xpInLevel} / {stats.xpForLevel} XP</span>
+          </div>
+          <ProgressBar value={stats.xpInLevel} max={stats.xpForLevel} shimmer className="mt-2" />
+        </section>
 
-      {/* Grass scenery + info cards */}
       <section className="relative flex flex-1 flex-col min-h-0 rounded-3xl overflow-hidden opacity-0-start animate-scaleIn stagger-2">
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img src="/eco/terrestrial.webp" alt="" className="absolute inset-0 w-full h-full object-cover object-center" aria-hidden />

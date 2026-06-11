@@ -7,7 +7,7 @@ import { SPECIES, RARITY_LABEL, SPECIES_BY_ID } from "@/data/species";
 import type { Species } from "@/lib/types";
 import type { Discovery } from "@/lib/game";
 import type { DiaryEntry } from "@/lib/types";
-import { loadDiary } from "@/lib/creatureStore";
+import { fetchDiary } from "@/lib/gameApi";
 import SpeciesImage from "@/components/SpeciesImage";
 import SpeciesDetailSheet from "@/components/SpeciesDetailSheet";
 import { RARITY_THEME } from "@/lib/theme";
@@ -44,7 +44,8 @@ export default function EncyclopediaClient({
   const [diary, setDiary] = useState<DiaryEntry[]>([]);
 
   useEffect(() => {
-    if (view === "diary") setDiary(loadDiary(userId));
+    if (view !== "diary") return;
+    fetchDiary().then(setDiary);
   }, [userId, view]);
 
   const discoveredCount = Object.keys(discoveries).length;

@@ -10,7 +10,7 @@ export default function RankingClient({
   myUserId,
 }: {
   entries: RankEntry[];
-  myUserId: string;
+  myUserId: string | null;
 }) {
   const myRank = entries.find((e) => e.userId === myUserId);
 
