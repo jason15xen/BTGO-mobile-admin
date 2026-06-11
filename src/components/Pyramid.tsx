@@ -141,6 +141,10 @@ interface PyramidProps {
   embedded?: boolean;
   /** Species currently visible on the pyramid (pw &gt; 0). */
   activeIds?: Set<string>;
+  /** Starved individuals — stay in place, grayed out (spec §3.1). */
+  extinctIds?: Set<string>;
+  /** Invasive species isolated with a protection fence (保護柵). */
+  fencedIds?: Set<string>;
   /** Latest pw per species — drives size / weakness visuals. */
   pwMap?: Record<string, number>;
   /** Reddish tone when invasive species are present in this pyramid. */
@@ -163,6 +167,8 @@ function PyramidTile({
   embedded,
   label,
   pw,
+  extinct,
+  fenced,
   isSelected,
   onSelect,
   canReceiveFeed,
@@ -177,6 +183,8 @@ function PyramidTile({
   embedded?: boolean;
   label: string;
   pw?: number;
+  extinct?: boolean;
+  fenced?: boolean;
   isSelected?: boolean;
   onSelect?: (species: Species, showPhoto: boolean) => void;
   canReceiveFeed?: boolean;
@@ -188,13 +196,21 @@ function PyramidTile({
     ? "w-11 h-11 rounded-lg"
     : "w-[10vw] max-w-12 h-[10vw] max-h-12 min-w-9 min-h-9 rounded-xl sm:w-12 sm:h-12";
 
-  const visual = showPhoto && pw !== undefined ? pwVisual(pw) : "normal";
-  const vitalityScale = showPhoto && pw !== undefined ? pwTileScale(pw) : 1;
+  const visual = showPhoto && !extinct && pw !== undefined ? pwVisual(pw) : "normal";
+  const vitalityScale = showPhoto && !extinct && pw !== undefined ? pwTileScale(pw) : extinct ? 0.9 : 1;
   const inner = (
     <>
       {showPhoto ? (
         <div
-          className={`w-full h-full flex items-center justify-center ${visual === "weak" ? "opacity-80 saturate-75" : visual === "strong" ? "saturate-110" : ""}`}
+          className={`w-full h-full flex items-center justify-center ${
+            extinct
+              ? "grayscale opacity-60"
+              : visual === "weak"
+              ? "opacity-80 saturate-75"
+              : visual === "strong"
+              ? "saturate-110"
+              : ""
+          }`}
         >
           <SpeciesImage
             speciesId={s.id}
@@ -212,9 +228,14 @@ function PyramidTile({
           新
         </span>
       )}
-      {showPhoto && s.invasive && (
-        <span className="absolute bottom-0.5 left-0.5 text-[6px] font-bold bg-red-500 text-white px-1 py-px rounded leading-none z-20">
-          外来
+      {showPhoto && s.invasive && !extinct && (
+        <span className={`absolute bottom-0.5 left-0.5 text-[6px] font-bold text-white px-1 py-px rounded leading-none z-20 ${fenced ? "bg-sky-500" : "bg-red-500"}`}>
+          {fenced ? "柵" : "外来"}
+        </span>
+      )}
+      {extinct && (
+        <span className="absolute bottom-0.5 left-0.5 text-[6px] font-bold bg-neutral-400 text-white px-1 py-px rounded leading-none z-20">
+          消滅
         </span>
       )}
       {isSelected && (
@@ -231,9 +252,13 @@ function PyramidTile({
       ? "ring-2 ring-dashed ring-forest-400/70"
       : isSelected
     ? "ring-[3px] ring-forest-400"
+    : extinct
+      ? "ring-1 ring-neutral-300/60"
     : showPhoto
       ? s.invasive
-        ? "ring-[3px] ring-red-500 shadow-[0_0_12px_2px_rgba(239,68,68,0.45)]"
+        ? fenced
+          ? "ring-[3px] ring-sky-500 shadow-[0_0_10px_2px_rgba(14,165,233,0.4)]"
+          : "ring-[3px] ring-red-500 shadow-[0_0_12px_2px_rgba(239,68,68,0.45)]"
         : isNew
           ? "ring-[3px] ring-amber-400 shadow-[0_0_14px_3px_rgba(251,191,36,0.75)]"
           : "ring-1 ring-white shadow-[0_2px_8px_rgba(0,0,0,0.16)]"
@@ -311,6 +336,8 @@ export default function Pyramid({
   highlightId,
   embedded,
   activeIds,
+  extinctIds,
+  fencedIds,
   pwMap,
   invasiveThreat,
   selectedId,
@@ -381,9 +408,11 @@ export default function Pyramid({
 
                 <div className={`flex items-center justify-center overflow-visible ${gap} ${px} ${embedded ? "pb-2.5" : "pb-2 sm:pb-4"}`}>
                   {cells.map((s) => {
-                    const showPhoto = activeIds ? activeIds.has(s.id) : discovered.has(s.id);
+                    const active = activeIds ? activeIds.has(s.id) : discovered.has(s.id);
+                    const extinct = !active && Boolean(extinctIds?.has(s.id));
+                    const showPhoto = active || extinct;
                     const canReceiveFeed = Boolean(
-                      feedDropTargets?.has(s.id) && onFeedDrop,
+                      feedDropTargets?.has(s.id) && onFeedDrop && !extinct,
                     );
                     return (
                       <PyramidTile
@@ -395,6 +424,8 @@ export default function Pyramid({
                         embedded={embedded}
                         label={label}
                         pw={pwMap?.[s.id]}
+                        extinct={extinct}
+                        fenced={fencedIds?.has(s.id)}
                         isSelected={selectedId === s.id}
                         onSelect={onSelect}
                         canReceiveFeed={canReceiveFeed}

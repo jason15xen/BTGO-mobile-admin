@@ -3,20 +3,25 @@ import type { Species } from "./types";
 /** PoC vitality (pw) rules. */
 
 export const INITIAL_PW = 10;
+export const MAX_PW = 10; // hard cap — a creature never exceeds 10 pw
 export const DECAY_PER_DAY = 1;
-export const PW_STRONG_THRESHOLD = 10;
-export const PW_WEAK_THRESHOLD = 3;
+export const PW_STRONG_THRESHOLD = 10; // 10以上 = 大きく表示
+export const PW_WEAK_THRESHOLD = 3; // 3以下 = 小さく表示
 export const MS_PER_DAY = 24 * 60 * 60 * 1000;
 
-/** PW generated per capture — predators earn more, producers less. */
-export function captureFeedPw(species: Species): number {
-  const byLevel: Record<Species["trophicLevel"], number> = {
-    1: 2,
-    2: 3,
-    3: 5,
-    4: 8,
-  };
-  return byLevel[species.trophicLevel];
+/** Food comes in three sizes (any creature can eat any food). */
+export const FOOD_VALUES = [1, 3, 9] as const;
+
+/** Food granted on capture — bigger food for rarer finds. */
+export function captureFeedPw(species?: Species): number {
+  switch (species?.rarity) {
+    case "legendary":
+      return 9;
+    case "rare":
+      return 3;
+    default:
+      return 1;
+  }
 }
 
 export function applyDecay(
@@ -33,11 +38,12 @@ export function applyDecay(
   };
 }
 
-/** Tile scale from vitality — low pw small, high pw large (1〜10). */
+/** Tile scale from vitality — low pw clearly small, high pw clearly large. */
 export function pwTileScale(pw: number): number {
   const clamped = Math.max(1, Math.min(INITIAL_PW, pw));
   if (INITIAL_PW <= 1) return 1;
-  return 0.58 + ((clamped - 1) / (INITIAL_PW - 1)) * 0.62;
+  // pw 1 → 0.5 (small) … pw 10 → 1.3 (large)
+  return 0.5 + ((clamped - 1) / (INITIAL_PW - 1)) * 0.8;
 }
 
 /** @deprecated Use pwTileScale — kept for inner image emphasis. */

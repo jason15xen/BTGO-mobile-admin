@@ -28,6 +28,9 @@ export async function POST(req: Request) {
     if (result === "invalid-target") {
       return NextResponse.json({ ok: false, reason: "invalid-target" });
     }
+    if (result === "no-food") {
+      return NextResponse.json({ ok: false, reason: "no-food" });
+    }
     if (!result) {
       return NextResponse.json({ ok: false, reason: "not-found" });
     }

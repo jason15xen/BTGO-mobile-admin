@@ -14,14 +14,18 @@ export type PlayerState = {
 
 export type GameState = {
   feeds: FeedItem[];
+  foodPw: number;
   pwMap: Record<string, number>;
   activeIds: string[];
+  extinctIds: string[];
+  fencedIds: string[];
+  loginBonus: boolean;
   invasive: Record<Ecosystem, boolean>;
 };
 
 export type FeedResult =
-  | { ok: true; predatorName: string; gained: number; newPw: number }
-  | { ok: false; reason: "no-predator" | "invalid-target" | "not-found" | "error" };
+  | { ok: true; predatorName: string; gained: number; newPw: number; foodPw: number; recovered: boolean }
+  | { ok: false; reason: "no-predator" | "invalid-target" | "no-food" | "not-found" | "error" };
 
 export async function fetchPlayer(): Promise<PlayerState | null> {
   const res = await fetch("/api/player");
@@ -48,8 +52,12 @@ export async function fetchGameState(): Promise<GameState> {
   if (!res.ok) {
     return {
       feeds: [],
+      foodPw: 0,
       pwMap: {},
       activeIds: [],
+      extinctIds: [],
+      fencedIds: [],
+      loginBonus: false,
       invasive: { terrestrial: false, freshwater: false, marine: false },
     };
   }
@@ -70,11 +78,35 @@ export async function postFeed(
   return { ok: false, reason: data.reason ?? "error" };
 }
 
+export async function postFence(
+  speciesId: string,
+): Promise<{ ok: true; balance: number } | { ok: false; reason: string }> {
+  const res = await fetch("/api/game/fence", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ speciesId }),
+  });
+  const data = await res.json().catch(() => ({}));
+  if (res.ok && data.ok) return data;
+  return { ok: false, reason: data.reason ?? "error" };
+}
+
 export async function fetchDiary(): Promise<DiaryEntry[]> {
   const res = await fetch("/api/diary");
   if (!res.ok) return [];
   const data = await res.json();
   return Array.isArray(data.entries) ? data.entries : [];
+}
+
+export async function updateDiary(
+  id: string,
+  patch: { note?: string; emotion?: string },
+): Promise<void> {
+  await fetch("/api/diary", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ id, ...patch }),
+  });
 }
 
 export async function fetchWallet(): Promise<{ balance: number; coupons: OwnedCoupon[] }> {

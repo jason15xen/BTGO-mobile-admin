@@ -1,13 +1,12 @@
 import { SPECIES } from "@/data/species";
 import type { Ecosystem, FeedItem, Species } from "@/lib/types";
 
-export function validPredatorsForFeed(feed: FeedItem, discovered: Set<string>): Species[] {
-  return SPECIES.filter(
-    (s) =>
-      s.ecosystem === feed.ecosystem &&
-      s.trophicLevel === feed.trophicLevel + 1 &&
-      discovered.has(s.id),
-  );
+/**
+ * Targets that can eat a piece of food. Food is generic (a single type), so
+ * ANY discovered creature — any ecosystem, any trophic level — can eat it.
+ */
+export function validPredatorsForFeed(_feed: FeedItem, discovered: Set<string>): Species[] {
+  return SPECIES.filter((s) => discovered.has(s.id));
 }
 
 export function invasiveForEcosystem(

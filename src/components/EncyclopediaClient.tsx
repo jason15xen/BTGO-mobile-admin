@@ -1,13 +1,13 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { FiCamera } from "react-icons/fi";
 import { LuBookOpen, LuNotebookPen } from "react-icons/lu";
 import { SPECIES, RARITY_LABEL, SPECIES_BY_ID } from "@/data/species";
 import type { Species } from "@/lib/types";
 import type { Discovery } from "@/lib/game";
 import type { DiaryEntry } from "@/lib/types";
-import { fetchDiary } from "@/lib/gameApi";
+import { fetchDiary, updateDiary } from "@/lib/gameApi";
 import SpeciesImage from "@/components/SpeciesImage";
 import SpeciesDetailSheet from "@/components/SpeciesDetailSheet";
 import { RARITY_THEME } from "@/lib/theme";
@@ -43,10 +43,14 @@ export default function EncyclopediaClient({
   const [selected, setSelected] = useState<Species | null>(null);
   const [diary, setDiary] = useState<DiaryEntry[]>([]);
 
+  const refreshDiary = useCallback(() => {
+    fetchDiary().then(setDiary);
+  }, []);
+
   useEffect(() => {
     if (view !== "diary") return;
-    fetchDiary().then(setDiary);
-  }, [userId, view]);
+    refreshDiary();
+  }, [view, refreshDiary]);
 
   const discoveredCount = Object.keys(discoveries).length;
   const pct = Math.round((discoveredCount / SPECIES.length) * 100);
@@ -84,7 +88,7 @@ export default function EncyclopediaClient({
         </div>
 
         {view === "diary" ? (
-          <DiaryList entries={diary} />
+          <DiaryList entries={diary} onChange={refreshDiary} />
         ) : (
         <>
         <Card className="relative z-10">
@@ -163,7 +167,14 @@ export default function EncyclopediaClient({
   );
 }
 
-function DiaryList({ entries }: { entries: DiaryEntry[] }) {
+const EMOTIONS: { key: string; emoji: string; label: string }[] = [
+  { key: "fun", emoji: "😊", label: "楽しい" },
+  { key: "hard", emoji: "😓", label: "むずかしい" },
+  { key: "surprise", emoji: "😲", label: "びっくり" },
+  { key: "happy", emoji: "🥰", label: "うれしい" },
+];
+
+function DiaryList({ entries, onChange }: { entries: DiaryEntry[]; onChange: () => void }) {
   if (entries.length === 0) {
     return (
       <Card className="text-center py-12">
@@ -174,29 +185,81 @@ function DiaryList({ entries }: { entries: DiaryEntry[] }) {
       </Card>
     );
   }
-
   return (
     <div className="space-y-3">
-      {entries.map((e) => {
-        const sp = SPECIES_BY_ID[e.speciesId];
-        return (
-          <Card key={e.id} className="!p-3 flex gap-3">
-            <div className="w-20 h-20 rounded-xl overflow-hidden shrink-0 bg-neutral-100">
-              {e.photoData ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img src={e.photoData} alt={sp?.nameJa ?? ""} className="w-full h-full object-cover" />
-              ) : (
-                <SpeciesImage speciesId={e.speciesId} emoji={sp?.emoji ?? "❓"} alt={sp?.nameJa ?? ""} className="w-full h-full" rounded="rounded-xl" />
-              )}
-            </div>
-            <div className="flex-1 min-w-0 py-0.5">
-              <div className="font-bold text-neutral-800 truncate">{sp?.nameJa ?? "不明"}</div>
-              <div className="text-xs italic text-neutral-400 truncate">{sp?.nameSci}</div>
-              <div className="text-xs text-neutral-500 mt-2">{fmtDateTime(e.observedAt)}</div>
-            </div>
-          </Card>
-        );
-      })}
+      <p className="text-xs text-neutral-400 px-1">撮影すると自動で記録されます（{entries.length}件）</p>
+      {entries.map((e) => (
+        <DiaryCard key={e.id} e={e} onChange={onChange} />
+      ))}
     </div>
+  );
+}
+
+function DiaryCard({ e, onChange }: { e: DiaryEntry; onChange: () => void }) {
+  const sp = SPECIES_BY_ID[e.speciesId];
+  const [note, setNote] = useState(e.note ?? "");
+
+  async function pickEmotion(key: string) {
+    await updateDiary(e.id, { emotion: e.emotion === key ? "" : key });
+    onChange();
+  }
+  async function saveNote() {
+    if (note.trim() === (e.note ?? "")) return;
+    await updateDiary(e.id, { note: note.trim() });
+    onChange();
+  }
+
+  return (
+    <Card className="!p-3">
+      <div className="flex gap-3">
+        <div className="w-20 h-20 rounded-xl overflow-hidden shrink-0 bg-neutral-100">
+          {e.photoData ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={e.photoData} alt={sp?.nameJa ?? ""} className="w-full h-full object-cover" />
+          ) : (
+            <SpeciesImage speciesId={e.speciesId} emoji={sp?.emoji ?? "❓"} alt={sp?.nameJa ?? ""} className="w-full h-full" rounded="rounded-xl" />
+          )}
+        </div>
+        <div className="flex-1 min-w-0 py-0.5">
+          <div className="font-bold text-neutral-800 truncate">{sp?.nameJa ?? "不明"}</div>
+          <div className="text-xs italic text-neutral-400 truncate">{sp?.nameSci}</div>
+          <div className="text-xs text-neutral-500 mt-1.5">{fmtDateTime(e.observedAt)}</div>
+          <div className="text-xs text-neutral-500 mt-0.5 flex items-center gap-2 flex-wrap">
+            {e.area && <span>📍 {e.area}</span>}
+            {e.weather && <span>{e.weather}</span>}
+          </div>
+        </div>
+      </div>
+
+      {/* emotion stamps */}
+      <div className="flex gap-1.5 mt-3">
+        {EMOTIONS.map((em) => {
+          const on = e.emotion === em.key;
+          return (
+            <button
+              key={em.key}
+              onClick={() => pickEmotion(em.key)}
+              className={`flex-1 rounded-xl py-1.5 flex flex-col items-center border transition-colors ${
+                on ? "bg-forest-50 border-forest-400" : "bg-white border-neutral-200 active:bg-neutral-50"
+              }`}
+            >
+              <span className="text-base leading-none">{em.emoji}</span>
+              <span className={`text-[9px] mt-0.5 ${on ? "text-forest-700 font-bold" : "text-neutral-400"}`}>{em.label}</span>
+            </button>
+          );
+        })}
+      </div>
+
+      {/* note */}
+      <input
+        type="text"
+        value={note}
+        onChange={(ev) => setNote(ev.target.value)}
+        onBlur={saveNote}
+        placeholder="メモを書く…"
+        maxLength={200}
+        className="w-full mt-2 text-sm bg-neutral-50 rounded-xl px-3 py-2 border border-neutral-200 outline-none focus:border-forest-400"
+      />
+    </Card>
   );
 }
