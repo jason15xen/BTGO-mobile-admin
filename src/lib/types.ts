@@ -27,3 +27,51 @@ export interface Observation {
   observedAt: string;
   status: "verified" | "pending" | "flagged";
 }
+
+/** One captured individual on the pyramid (re-capture = new individual). */
+export interface Individual {
+  id: string;
+  speciesId: string;
+  userId: string;
+  pw: number;
+  createdAt: string;
+  lastDecayAt: string;
+}
+
+/** Material from a capture — fed to the tier above. */
+export interface FeedItem {
+  id: string;
+  userId: string;
+  sourceSpeciesId: string;
+  ecosystem: Ecosystem;
+  trophicLevel: 1 | 2 | 3 | 4;
+  pwValue: number;
+  createdAt: string;
+}
+
+/** Logged-in user (public fields). */
+export interface UserProfile {
+  id: string;
+  email: string;
+  name: string;
+  avatar: string;
+}
+
+/** @deprecated Use UserProfile */
+export type PlayerProfile = UserProfile & { playerId?: string };
+export type AppUser = UserProfile;
+
+/** Auto nature-journal entry (one per capture). */
+export interface DiaryEntry {
+  id: string;
+  speciesId: string;
+  userId: string;
+  photoData?: string;
+  observedAt: string;
+  area?: string;
+  weather?: string;
+  /** user-added free note */
+  note?: string;
+  /** emotion stamp key: fun | hard | surprise | happy */
+  emotion?: string;
+}

@@ -1,17 +1,19 @@
 import { readObservations } from "@/lib/dataStore";
-import { getCurrentUser, resolveUserId } from "@/lib/auth";
 import { computeUserStats, myObservations, rewardFor } from "@/lib/game";
-import { SPECIES_BY_ID } from "@/data/species";
+import { getGuestProfile } from "@/lib/guestStore";
+import { pyramidSummary } from "@/lib/pyramidSummary";
+import { SPECIES_BY_ID, PYRAMID_TOTAL } from "@/data/species";
 import ProfileClient from "@/components/ProfileClient";
 
 export const dynamic = "force-dynamic";
 
 export default async function ProfilePage() {
-  const user = await getCurrentUser();
-  const userId = resolveUserId(user);
+  const user = getGuestProfile();
   const obs = await readObservations();
-  const stats = computeUserStats(obs, userId);
-  const mine = myObservations(obs, userId);
+  const stats = computeUserStats(obs, user.id);
+  const mine = myObservations(obs, user.id);
+  const discovered = [...new Set(mine.map((o) => o.speciesId))];
+  const pyramid = pyramidSummary(discovered, PYRAMID_TOTAL);
 
   const recent = mine.slice(0, 6).map((o) => {
     const sp = SPECIES_BY_ID[o.speciesId];
@@ -24,5 +26,12 @@ export default async function ProfilePage() {
     };
   });
 
-  return <ProfileClient user={user} stats={stats} recent={recent} />;
+  return (
+    <ProfileClient
+      initialProfile={user}
+      stats={stats}
+      recent={recent}
+      pyramid={pyramid}
+    />
+  );
 }

@@ -1,5 +1,5 @@
-import AuthClient from "@/components/AuthClient";
+import { redirect } from "next/navigation";
 
 export default function RegisterPage() {
-  return <AuthClient mode="signup" />;
+  redirect("/");
 }

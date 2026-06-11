@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { LuX, LuMapPin, LuCalendar, LuHash, LuArrowLeft } from "react-icons/lu";
+import { LuX, LuMapPin, LuCalendar, LuHash, LuArrowLeft, LuActivity } from "react-icons/lu";
 import SpeciesImage from "@/components/SpeciesImage";
 import { SPECIES, ECOSYSTEM_LABEL } from "@/data/species";
 import { SPECIES_INFO } from "@/data/speciesInfo";
@@ -15,10 +15,12 @@ const dexNo = (id: string) => String(SPECIES.findIndex((s) => s.id === id) + 1).
 export default function SpeciesDetailSheet({
   species,
   discovery,
+  pw,
   onClose,
 }: {
   species: Species;
   discovery: Discovery;
+  pw?: number;
   onClose: () => void;
 }) {
   const [showMap, setShowMap] = useState(false);
@@ -86,6 +88,7 @@ export default function SpeciesDetailSheet({
               <StatRow icon={<LuCalendar size={13} />} label="発見日" value={fmtDate(discovery.firstFound)} />
               <StatRow icon={<span className="text-gold-500 font-bold text-[10px]">B</span>} label="獲得B-mile" value={`+${bmile}`} accent />
               <StatRow icon={<LuHash size={13} />} label="観察回数" value={`${discovery.count} 回`} />
+              {pw !== undefined && <StatRow icon={<LuActivity size={13} />} label="生命力" value={`${pw} pw`} />}
               {info?.habitat && <StatRow icon={<LuMapPin size={13} />} label="生息地" value={info.habitat} />}
             </div>
 

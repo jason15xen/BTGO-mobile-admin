@@ -1,11 +1,11 @@
 import { NextResponse } from "next/server";
-import { getCurrentUser, isAuthConfigured, resolveUserId, resolveUserName } from "@/lib/auth";
 import { addObservation, readObservations } from "@/lib/dataStore";
+import { getGuestProfile } from "@/lib/guestStore";
 import { SPECIES_BY_ID } from "@/data/species";
-import { rewardFor } from "@/lib/game";
+import { rewardForCapture } from "@/lib/game";
+import { completeCapture } from "@/lib/gameStore";
 import type { Observation } from "@/lib/types";
 
-// Always run on the Node.js runtime (fs access), never Edge.
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
@@ -19,19 +19,22 @@ const SPOTS = [
   { name: "田子の浦", lat: 35.13, lng: 138.7 },
 ];
 
+export async function GET() {
+  try {
+    const user = getGuestProfile();
+    const all = await readObservations();
+    const discovered = Array.from(
+      new Set(all.filter((o) => o.userId === user.id).map((o) => o.speciesId)),
+    );
+    return NextResponse.json({ discovered, userId: user.id });
+  } catch {
+    return NextResponse.json({ discovered: [], userId: null });
+  }
+}
+
 export async function POST(req: Request) {
   try {
-    const user = await getCurrentUser();
-    if (isAuthConfigured() && !user) {
-      return NextResponse.json(
-        { error: "unauthorized", message: "ログインが必要です。" },
-        { status: 401 },
-      );
-    }
-
-    const userId = resolveUserId(user);
-    const userName = resolveUserName(user);
-
+    const user = getGuestProfile();
     const { speciesId } = await req.json();
     const species = SPECIES_BY_ID[speciesId];
     if (!species) {
@@ -41,7 +44,6 @@ export async function POST(req: Request) {
     const spot = SPOTS[Math.floor(Math.random() * SPOTS.length)];
     const jitter = () => (Math.random() - 0.5) * 0.02;
 
-    // Read existing data (falls back to bundled seed; never throws).
     let all: Observation[] = [];
     try {
       all = await readObservations();
@@ -52,8 +54,8 @@ export async function POST(req: Request) {
     const observation: Observation = {
       id: `obs-cap-${Date.now()}`,
       speciesId,
-      userId,
-      userName,
+      userId: user.id,
+      userName: user.name,
       lat: Number((spot.lat + jitter()).toFixed(5)),
       lng: Number((spot.lng + jitter()).toFixed(5)),
       area: spot.name,
@@ -61,32 +63,38 @@ export async function POST(req: Request) {
       status: "verified",
     };
 
-    // Persist if possible; ignore on read-only hosts (e.g. Vercel).
     try {
       await addObservation(observation);
     } catch {
       /* ignore */
     }
 
-    const reward = rewardFor(species);
     const isNewSpecies = !all.some(
-      (o) => o.userId === userId && o.speciesId === speciesId,
+      (o) => o.userId === user.id && o.speciesId === speciesId,
     );
+    const reward = rewardForCapture(species, isNewSpecies);
+    const { feed, pwValue } = completeCapture(speciesId);
     const myDiscovered = Array.from(
       new Set(
         all
           .concat(observation)
-          .filter((o) => o.userId === userId)
+          .filter((o) => o.userId === user.id)
           .map((o) => o.speciesId),
       ),
     );
 
-    return NextResponse.json({ observation, reward, isNewSpecies, myDiscovered });
+    return NextResponse.json({
+      observation,
+      reward,
+      isNewSpecies,
+      myDiscovered,
+      userId: user.id,
+      feed: { pwValue },
+    });
   } catch (e) {
-    // Last-resort guard so the capture flow never breaks the demo.
     return NextResponse.json(
       { error: "capture_failed", message: e instanceof Error ? e.message : String(e) },
-      { status: 200 }
+      { status: 500 },
     );
   }
 }

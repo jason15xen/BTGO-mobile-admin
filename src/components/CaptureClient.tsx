@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { SPECIES, ECOSYSTEM_LABEL } from "@/data/species";
 import { SPECIES_INFO } from "@/data/speciesInfo";
 import { ECO_THEME } from "@/lib/theme";
-import { rewardFor } from "@/lib/game";
+import { rewardForCapture } from "@/lib/game";
 import type { Species } from "@/lib/types";
 import Pyramid from "@/components/Pyramid";
 import SpeciesImage from "@/components/SpeciesImage";
@@ -38,7 +38,9 @@ export default function CaptureClient() {
   const [progress, setProgress] = useState(0);
   const [reward, setReward] = useState<{ xp: number; points: number } | null>(null);
   const [discovered, setDiscovered] = useState<Set<string>>(new Set());
+  const [userId, setUserId] = useState("u-demo");
   const [isNew, setIsNew] = useState(false);
+  const [feedGain, setFeedGain] = useState<number | null>(null);
 
   const setImmersive = useImmersive();
 
@@ -104,6 +106,16 @@ export default function CaptureClient() {
 
   useEffect(() => stopCamera, [stopCamera]);
 
+  useEffect(() => {
+    fetch("/api/capture")
+      .then((r) => r.json())
+      .then((data) => {
+        if (Array.isArray(data.discovered)) setDiscovered(new Set(data.discovered));
+        if (data.userId) setUserId(data.userId);
+      })
+      .catch(() => {});
+  }, []);
+
   // AI analyzing progress.
   useEffect(() => {
     if (phase !== "analyzing") return;
@@ -156,29 +168,25 @@ export default function CaptureClient() {
   async function register() {
     if (!subject) return;
     setPhase("saving");
+    const guessedNew = !discovered.has(subject.id);
     try {
       const res = await fetch("/api/capture", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ speciesId: subject.id }),
+        body: JSON.stringify({ speciesId: subject.id, photoData: shot ?? undefined }),
       });
       const data = await res.json().catch(() => ({}));
-      if (res.status === 401) {
-        alert("記録を保存するにはログインが必要です。");
-        router.push("/login");
-        setPhase("result");
-        return;
-      }
-      setReward(data.reward ?? rewardFor(subject));
-      setIsNew(data.isNewSpecies ?? true);
-      setDiscovered(new Set<string>(data.myDiscovered ?? [subject.id]));
+      const rw = data.reward ?? rewardForCapture(subject, guessedNew);
+      const uid = data.userId ?? userId;
+      setUserId(uid);
+      setReward(rw);
+      setIsNew(data.isNewSpecies ?? guessedNew);
+      setFeedGain(data.feed?.pwValue ?? null);
+      setDiscovered(new Set<string>(data.myDiscovered ?? [...discovered, subject.id]));
       setPhase("reflection");
     } catch {
-      // Network/server failure — still show the reflection with local values.
-      setReward(rewardFor(subject));
-      setIsNew(true);
-      setDiscovered(new Set<string>([subject.id]));
-      setPhase("reflection");
+      alert("登録に失敗しました。もう一度お試しください。");
+      setPhase("result");
     }
   }
 
@@ -298,7 +306,8 @@ export default function CaptureClient() {
   if (!subject) return null;
   const theme = ECO_THEME[subject.ecosystem];
   const info = SPECIES_INFO[subject.id];
-  const rw = rewardFor(subject);
+  const guessedNew = !discovered.has(subject.id);
+  const rw = rewardForCapture(subject, guessedNew);
 
   // ---------------- RESULT (designated organism + info) ----------------
   if (phase === "result" || phase === "saving") {
@@ -317,7 +326,12 @@ export default function CaptureClient() {
         <div className="px-5">
           <div className="relative rounded-3xl overflow-hidden border border-neutral-200 shadow-[0_16px_30px_-12px_rgba(16,28,22,0.45)]">
             <div className="aspect-[4/3]">
-              <SpeciesImage speciesId={subject.id} emoji={subject.emoji} alt={subject.nameJa} className="w-full h-full" />
+              {shot ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={shot} alt="撮影画像" className="w-full h-full object-cover" />
+              ) : (
+                <SpeciesImage speciesId={subject.id} emoji={subject.emoji} alt={subject.nameJa} className="w-full h-full" />
+              )}
             </div>
           </div>
 
@@ -344,6 +358,7 @@ export default function CaptureClient() {
               </>
             )}
           </div>
+          {!guessedNew && <p className="text-center text-[11px] text-neutral-400">再撮影 — 少量のB-mile</p>}
 
           {/* specific information */}
           <div className="card3d rounded-2xl p-5 space-y-3">
@@ -400,14 +415,23 @@ export default function CaptureClient() {
               <div className="text-xs text-neutral-400">{ECOSYSTEM_LABEL[subject.ecosystem]} ピラミッドに追加{isNew && " ・ 新種！"}</div>
             </div>
           </div>
-          <Pyramid ecosystem={subject.ecosystem} discovered={discovered} highlightId={subject.id} embedded />
+          <Pyramid
+            ecosystem={subject.ecosystem}
+            discovered={discovered}
+            activeIds={new Set([subject.id])}
+            pwMap={{ [subject.id]: 10 }}
+            highlightId={subject.id}
+            embedded
+          />
         </div>
 
-        <div className="grid grid-cols-3 gap-3">
+        <div className="grid grid-cols-2 gap-3">
           <Stat label="獲得B-mile" value={`+${reward?.points ?? 0}`} className="stagger-4" />
           <Stat label="獲得XP" value={`+${reward?.xp ?? 0}`} className="stagger-5" />
+          <Stat label="餌（素材）" value={feedGain ? `+1（+${feedGain}pw）` : "+1"} className="stagger-6" />
           <Stat label="登録種数" value={`${discovered.size}`} className="stagger-6" />
         </div>
+        <p className="text-xs text-center text-neutral-500">ピラミッド画面で餌をドラッグして上位の生き物に与えられます</p>
 
         <div className="grid grid-cols-2 gap-3 opacity-0-start animate-fadeUp stagger-6">
           <button onClick={() => router.push("/encyclopedia")} className="bg-white border-[1.5px] border-neutral-200 text-neutral-700 font-semibold rounded-2xl py-3.5">

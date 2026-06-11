@@ -3,6 +3,9 @@ export interface SpeciesInfo {
   habitat: string;
   diet: string;
   description: string;
+  season?: string;
+  timeOfDay?: string;
+  regionTrend?: string;
 }
 
 export const SPECIES_INFO: Record<string, SpeciesInfo> = {

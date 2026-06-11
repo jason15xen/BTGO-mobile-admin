@@ -1,7 +1,9 @@
 import { SPECIES, PYRAMID_SLOTS } from "@/data/species";
+import { pwTileScale, pwVisual } from "@/lib/creature";
 import type { Ecosystem, Species } from "@/lib/types";
 import type { IconType } from "react-icons";
 import { LuChevronUp } from "react-icons/lu";
+import { slotHintFor } from "@/lib/slotHint";
 import { GiLion, GiWolfHead, GiRabbit, GiHighGrass } from "react-icons/gi";
 import SpeciesImage from "@/components/SpeciesImage";
 import PyramidTetrahedron from "@/components/PyramidTetrahedron";
@@ -26,6 +28,48 @@ const TROPHIC_ICON: Record<number, IconType> = {
   2: GiRabbit,
   1: GiHighGrass,
 };
+
+function EmptySlotHint({
+  species,
+  level,
+  embedded,
+}: {
+  species: Species;
+  level: number;
+  embedded?: boolean;
+}) {
+  const hint = slotHintFor(species);
+  const TrophicIcon = TROPHIC_ICON[level];
+  const HintIcon = hint.Icon;
+  return (
+    <span
+      className={`w-full h-full flex flex-col items-center justify-center gap-0.5 bg-gradient-to-br ${hint.bgClass} border border-dashed border-neutral-300/80 px-0.5`}
+    >
+      <TrophicIcon
+        size={embedded ? 11 : 12}
+        className="text-neutral-400/70 shrink-0"
+        aria-hidden
+      />
+      <HintIcon
+        size={embedded ? 16 : 18}
+        className={`${hint.iconClass} shrink-0`}
+        aria-hidden
+      />
+      <span className={`text-[6px] sm:text-[7px] font-bold leading-none text-center ${hint.rarityClass}`}>
+        {hint.rarityLabel}
+      </span>
+      <span className="text-[6px] sm:text-[7px] font-semibold text-neutral-600 leading-none text-center line-clamp-1 w-full px-0.5">
+        {hint.categoryLabel}
+      </span>
+      <span className="text-[5px] sm:text-[6px] text-neutral-400 leading-none text-center line-clamp-1 w-full px-0.5">
+        {hint.habitatCue}
+      </span>
+      {species.invasive && (
+        <span className="text-[5px] font-bold text-red-500 leading-none">外来?</span>
+      )}
+    </span>
+  );
+}
 
 /** Trapezoid clip-paths — top/bottom edges align so tiers stack into one pyramid. */
 const TRAPEZOID: Record<number, string> = {
@@ -95,89 +139,226 @@ interface PyramidProps {
   highlightId?: string;
   /** Smaller copy of the same trapezoid pyramid (e.g. capture reflection). */
   embedded?: boolean;
-  onSelect?: (species: Species, found: boolean) => void;
+  /** Species currently visible on the pyramid (pw &gt; 0). */
+  activeIds?: Set<string>;
+  /** Starved individuals — stay in place, grayed out (spec §3.1). */
+  extinctIds?: Set<string>;
+  /** Invasive species isolated with a protection fence (保護柵). */
+  fencedIds?: Set<string>;
+  /** Latest pw per species — drives size / weakness visuals. */
+  pwMap?: Record<string, number>;
+  /** Reddish tone when invasive species are present in this pyramid. */
+  invasiveThreat?: boolean;
+  /** First-tap selection — prominent until second tap opens detail. */
+  selectedId?: string | null;
+  onSelect?: (species: Species, showPhoto: boolean) => void;
+  /** Species ids that can receive a dragged feed. */
+  feedDropTargets?: Set<string>;
+  feedHoverId?: string | null;
+  onFeedHover?: (speciesId: string | null) => void;
+  onFeedDrop?: (speciesId: string) => void;
 }
 
-function SpeciesTile({
+function PyramidTile({
   s,
   level,
-  found,
+  showPhoto,
   isNew,
   embedded,
   label,
+  pw,
+  extinct,
+  fenced,
+  isSelected,
   onSelect,
+  canReceiveFeed,
+  isFeedHover,
+  onFeedHover,
+  onFeedDrop,
 }: {
   s: Species;
   level: number;
-  found: boolean;
+  showPhoto: boolean;
   isNew: boolean;
   embedded?: boolean;
   label: string;
-  onSelect?: (species: Species, found: boolean) => void;
+  pw?: number;
+  extinct?: boolean;
+  fenced?: boolean;
+  isSelected?: boolean;
+  onSelect?: (species: Species, showPhoto: boolean) => void;
+  canReceiveFeed?: boolean;
+  isFeedHover?: boolean;
+  onFeedHover?: (speciesId: string | null) => void;
+  onFeedDrop?: (speciesId: string) => void;
 }) {
-  const KindIcon = TROPHIC_ICON[level];
   const tile = embedded
     ? "w-11 h-11 rounded-lg"
     : "w-[10vw] max-w-12 h-[10vw] max-h-12 min-w-9 min-h-9 rounded-xl sm:w-12 sm:h-12";
 
+  const visual = showPhoto && !extinct && pw !== undefined ? pwVisual(pw) : "normal";
+  const vitalityScale = showPhoto && !extinct && pw !== undefined ? pwTileScale(pw) : extinct ? 0.9 : 1;
   const inner = (
     <>
-      {found ? (
-        <SpeciesImage
-          speciesId={s.id}
-          emoji={s.emoji}
-          alt={s.nameJa}
-          className="w-full h-full"
-          rounded={embedded ? "rounded-lg" : "rounded-xl"}
-        />
+      {showPhoto ? (
+        <div
+          className={`w-full h-full flex items-center justify-center ${
+            extinct
+              ? "grayscale opacity-60"
+              : visual === "weak"
+              ? "opacity-80 saturate-75"
+              : visual === "strong"
+              ? "saturate-110"
+              : ""
+          }`}
+        >
+          <SpeciesImage
+            speciesId={s.id}
+            emoji={s.emoji}
+            alt={s.nameJa}
+            className="w-full h-full"
+            rounded={embedded ? "rounded-lg" : "rounded-xl"}
+          />
+        </div>
       ) : (
-        <span className="w-full h-full flex items-center justify-center text-neutral-400/70">
-          <KindIcon size={embedded ? 18 : 20} />
+        <EmptySlotHint species={s} level={level} embedded={embedded} />
+      )}
+      {isNew && showPhoto && (
+        <span className="absolute top-0.5 right-0.5 text-[7px] font-bold bg-gold-500 text-white px-1 py-px rounded-full leading-none z-20">
+          新
         </span>
       )}
-      {isNew && found && (
-        <span className="absolute top-0.5 right-0.5 text-[7px] font-bold bg-gold-500 text-white px-1 py-px rounded-full leading-none">
-          新
+      {showPhoto && s.invasive && !extinct && (
+        <span className={`absolute bottom-0.5 left-0.5 text-[6px] font-bold text-white px-1 py-px rounded leading-none z-20 ${fenced ? "bg-sky-500" : "bg-red-500"}`}>
+          {fenced ? "柵" : "外来"}
+        </span>
+      )}
+      {extinct && (
+        <span className="absolute bottom-0.5 left-0.5 text-[6px] font-bold bg-neutral-400 text-white px-1 py-px rounded leading-none z-20">
+          消滅
+        </span>
+      )}
+      {isSelected && (
+        <span className="absolute -top-1 left-1/2 -translate-x-1/2 text-[6px] font-bold bg-forest-600 text-white px-1.5 py-px rounded-full leading-none z-30 whitespace-nowrap shadow">
+          もう一度
         </span>
       )}
     </>
   );
 
-  const cls = `relative ${tile} shrink-0 transition-all ${
-    onSelect ? "active:scale-95" : ""
-  } ${
-    found
-      ? isNew
-        ? "ring-[3px] ring-amber-400 shadow-[0_0_14px_3px_rgba(251,191,36,0.75)]"
-        : "ring-1 ring-white shadow-[0_2px_8px_rgba(0,0,0,0.16)]"
-      : "bg-neutral-200/75 ring-1 ring-neutral-300/45 shadow-inset"
-  } overflow-hidden`;
+  const ringCls = isFeedHover && canReceiveFeed
+    ? "ring-[3px] ring-forest-500 shadow-[0_0_14px_3px_rgba(63,125,73,0.45)]"
+    : canReceiveFeed
+      ? "ring-2 ring-dashed ring-forest-400/70"
+      : isSelected
+    ? "ring-[3px] ring-forest-400"
+    : extinct
+      ? "ring-1 ring-neutral-300/60"
+    : showPhoto
+      ? s.invasive
+        ? fenced
+          ? "ring-[3px] ring-sky-500 shadow-[0_0_10px_2px_rgba(14,165,233,0.4)]"
+          : "ring-[3px] ring-red-500 shadow-[0_0_12px_2px_rgba(239,68,68,0.45)]"
+        : isNew
+          ? "ring-[3px] ring-amber-400 shadow-[0_0_14px_3px_rgba(251,191,36,0.75)]"
+          : "ring-1 ring-white shadow-[0_2px_8px_rgba(0,0,0,0.16)]"
+      : "bg-neutral-200/75 ring-1 ring-neutral-300/45 shadow-inset";
+
+  const selectedCls = isSelected
+    ? showPhoto
+      ? s.invasive
+        ? "pyramid-tile-selected pyramid-tile-selected--invasive"
+        : "pyramid-tile-selected"
+      : "pyramid-tile-selected pyramid-tile-selected--undiscovered"
+    : "";
+
+  const pressCls = onSelect && !isSelected ? "active:scale-95" : "";
+  const cls = ["relative", tile, "shrink-0", "transition-all", selectedCls, pressCls, ringCls, "overflow-visible"]
+    .filter(Boolean)
+    .join(" ");
+
+  const dropHandlers = canReceiveFeed && onFeedDrop
+    ? {
+        "data-drop-species": s.id,
+        onDragOver: (e: React.DragEvent) => {
+          e.preventDefault();
+          e.dataTransfer.dropEffect = "move";
+          onFeedHover?.(s.id);
+        },
+        onDragLeave: () => onFeedHover?.(null),
+        onDrop: (e: React.DragEvent) => {
+          e.preventDefault();
+          onFeedHover?.(null);
+          onFeedDrop(s.id);
+        },
+      }
+    : showPhoto || canReceiveFeed
+      ? { "data-drop-species": s.id }
+      : {};
 
   const tileEl = onSelect ? (
-    <button type="button" onClick={() => onSelect(s, found)} aria-label={found ? s.nameJa : `未発見の${label}`} className={cls}>
+    <button
+      type="button"
+      onClick={() => onSelect(s, showPhoto)}
+      aria-label={
+        showPhoto
+          ? s.nameJa
+          : `${label}・${s.category}・${slotHintFor(s).habitatCue}の枠（未確認）`
+      }
+      className={cls}
+      {...dropHandlers}
+    >
       {inner}
     </button>
   ) : (
-    <div className={cls}>{inner}</div>
+    <div className={cls} {...dropHandlers}>{inner}</div>
   );
 
-  if (isNew && found) {
-    return <StarlightFrame>{tileEl}</StarlightFrame>;
+  const scaled = (
+    <div
+      className="transition-transform duration-300 ease-out origin-center"
+      style={{ transform: `scale(${vitalityScale})` }}
+    >
+      {tileEl}
+    </div>
+  );
+
+  if (isNew && showPhoto) {
+    return <StarlightFrame>{scaled}</StarlightFrame>;
   }
 
-  return tileEl;
+  return scaled;
 }
 
-export default function Pyramid({ ecosystem, discovered, highlightId, embedded, onSelect }: PyramidProps) {
+export default function Pyramid({
+  ecosystem,
+  discovered,
+  highlightId,
+  embedded,
+  activeIds,
+  extinctIds,
+  fencedIds,
+  pwMap,
+  invasiveThreat,
+  selectedId,
+  onSelect,
+  feedDropTargets,
+  feedHoverId,
+  onFeedHover,
+  onFeedDrop,
+}: PyramidProps) {
   const inEco = SPECIES.filter((s) => s.ecosystem === ecosystem);
   const levels = [4, 3, 2, 1] as const;
 
   return (
     <div
-      className={`relative overflow-hidden rounded-2xl ${ECO_PYRAMID_BG[ecosystem]} ring-1 ring-forest-200/25 transition-colors duration-300 ${
-        embedded ? "px-2 py-3" : "px-2 py-4 sm:px-6 sm:py-8"
-      }`}
+      className={`relative overflow-hidden rounded-2xl ${ECO_PYRAMID_BG[ecosystem]} ring-1 transition-colors duration-300 ${
+        invasiveThreat ? "ring-red-300/50" : "ring-forest-200/25"
+      } ${embedded ? "px-2 py-3" : "px-2 py-4 sm:px-6 sm:py-8"}`}
     >
+      {invasiveThreat && (
+        <div className="absolute inset-0 bg-gradient-to-b from-red-900/10 via-red-500/5 to-transparent pointer-events-none z-[1]" aria-hidden />
+      )}
       {!embedded && <PyramidTetrahedron ecosystem={ecosystem} />}
 
       <div className={`relative z-10 flex w-full flex-col ${embedded ? "aspect-[5/7] min-h-[300px]" : "max-sm:aspect-[5/7]"}`}>
@@ -226,18 +407,34 @@ export default function Pyramid({ ecosystem, discovered, highlightId, embedded, 
                 </div>
 
                 <div className={`flex items-center justify-center overflow-visible ${gap} ${px} ${embedded ? "pb-2.5" : "pb-2 sm:pb-4"}`}>
-                  {cells.map((s) => (
-                    <SpeciesTile
-                      key={s.id}
-                      s={s}
-                      level={level}
-                      found={discovered.has(s.id)}
-                      isNew={s.id === highlightId}
-                      embedded={embedded}
-                      label={label}
-                      onSelect={onSelect}
-                    />
-                  ))}
+                  {cells.map((s) => {
+                    const active = activeIds ? activeIds.has(s.id) : discovered.has(s.id);
+                    const extinct = !active && Boolean(extinctIds?.has(s.id));
+                    const showPhoto = active || extinct;
+                    const canReceiveFeed = Boolean(
+                      feedDropTargets?.has(s.id) && onFeedDrop && !extinct,
+                    );
+                    return (
+                      <PyramidTile
+                        key={s.id}
+                        s={s}
+                        level={level}
+                        showPhoto={showPhoto}
+                        isNew={s.id === highlightId}
+                        embedded={embedded}
+                        label={label}
+                        pw={pwMap?.[s.id]}
+                        extinct={extinct}
+                        fenced={fencedIds?.has(s.id)}
+                        isSelected={selectedId === s.id}
+                        onSelect={onSelect}
+                        canReceiveFeed={canReceiveFeed}
+                        isFeedHover={feedHoverId === s.id}
+                        onFeedHover={onFeedHover}
+                        onFeedDrop={onFeedDrop}
+                      />
+                    );
+                  })}
                 </div>
               </div>
             </div>
