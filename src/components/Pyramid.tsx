@@ -156,7 +156,7 @@ interface PyramidProps {
   feedDropTargets?: Set<string>;
   feedHoverId?: string | null;
   onFeedHover?: (speciesId: string | null) => void;
-  onFeedDrop?: (speciesId: string) => void;
+  onFeedDrop?: (speciesId: string, feedId?: string) => void;
 }
 
 function PyramidTile({
@@ -190,7 +190,7 @@ function PyramidTile({
   canReceiveFeed?: boolean;
   isFeedHover?: boolean;
   onFeedHover?: (speciesId: string | null) => void;
-  onFeedDrop?: (speciesId: string) => void;
+  onFeedDrop?: (speciesId: string, feedId?: string) => void;
 }) {
   const tile = embedded
     ? "w-11 h-11 rounded-lg"
@@ -201,24 +201,27 @@ function PyramidTile({
   const inner = (
     <>
       {showPhoto ? (
-        <div
-          className={`w-full h-full flex items-center justify-center ${
-            extinct
-              ? "grayscale opacity-60"
-              : visual === "weak"
-              ? "opacity-80 saturate-75"
-              : visual === "strong"
-              ? "saturate-110"
-              : ""
-          }`}
-        >
-          <SpeciesImage
-            speciesId={s.id}
-            emoji={s.emoji}
-            alt={s.nameJa}
-            className="w-full h-full"
-            rounded={embedded ? "rounded-lg" : "rounded-xl"}
-          />
+        <div className={`absolute inset-0 overflow-hidden ${embedded ? "rounded-lg" : "rounded-xl"}`}>
+          <div
+            className={`w-full h-full flex items-center justify-center transition-transform duration-300 ease-out ${
+              extinct
+                ? "grayscale opacity-60"
+                : visual === "weak"
+                ? "opacity-80 saturate-75"
+                : visual === "strong"
+                ? "saturate-110"
+                : ""
+            }`}
+            style={{ transform: `scale(${vitalityScale})` }}
+          >
+            <SpeciesImage
+              speciesId={s.id}
+              emoji={s.emoji}
+              alt={s.nameJa}
+              className="w-full h-full"
+              rounded={embedded ? "rounded-lg" : "rounded-xl"}
+            />
+          </div>
         </div>
       ) : (
         <EmptySlotHint species={s} level={level} embedded={embedded} />
@@ -289,7 +292,7 @@ function PyramidTile({
         onDrop: (e: React.DragEvent) => {
           e.preventDefault();
           onFeedHover?.(null);
-          onFeedDrop(s.id);
+          onFeedDrop(s.id, e.dataTransfer.getData("application/feed-id") || undefined);
         },
       }
     : showPhoto || canReceiveFeed
@@ -314,20 +317,11 @@ function PyramidTile({
     <div className={cls} {...dropHandlers}>{inner}</div>
   );
 
-  const scaled = (
-    <div
-      className="transition-transform duration-300 ease-out origin-center"
-      style={{ transform: `scale(${vitalityScale})` }}
-    >
-      {tileEl}
-    </div>
-  );
-
   if (isNew && showPhoto) {
-    return <StarlightFrame>{scaled}</StarlightFrame>;
+    return <StarlightFrame>{tileEl}</StarlightFrame>;
   }
 
-  return scaled;
+  return tileEl;
 }
 
 export default function Pyramid({

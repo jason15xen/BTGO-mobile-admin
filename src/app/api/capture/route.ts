@@ -1,7 +1,15 @@
 import { NextResponse } from "next/server";
-import { addObservation, readObservations } from "@/lib/dataStore";
-import { getGuestProfile } from "@/lib/guestStore";
+import { addObservation } from "@/lib/dataStore";
+import { getGuestProfile, grantGuestBMile } from "@/lib/guestStore";
 import { SPECIES_BY_ID } from "@/data/species";
+import {
+  advanceDemoCapture,
+  getDemoCaptureStep,
+  getDemoDiscoveredIds,
+  getDemoPyramidLevel,
+  getNextScriptedCapture,
+} from "@/lib/demoState";
+import { DEMO_CAPTURE_SCRIPT, PYRAMID_COMPLETE_REWARD } from "@/lib/demoScript";
 import { rewardForCapture } from "@/lib/game";
 import { completeCapture } from "@/lib/gameStore";
 import type { Observation } from "@/lib/types";
@@ -22,11 +30,18 @@ const SPOTS = [
 export async function GET() {
   try {
     const user = getGuestProfile();
-    const all = await readObservations();
-    const discovered = Array.from(
-      new Set(all.filter((o) => o.userId === user.id).map((o) => o.speciesId)),
-    );
-    return NextResponse.json({ discovered, userId: user.id });
+    const next = getNextScriptedCapture();
+    const step = getDemoCaptureStep();
+    return NextResponse.json({
+      discovered: getDemoDiscoveredIds(),
+      userId: user.id,
+      demo: {
+        pyramidLevel: getDemoPyramidLevel(),
+        captureStep: step,
+        nextCapture: next,
+        capturesRemaining: next ? DEMO_CAPTURE_SCRIPT.length - step : 0,
+      },
+    });
   } catch {
     return NextResponse.json({ discovered: [], userId: null });
   }
@@ -41,15 +56,16 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "unknown species" }, { status: 400 });
     }
 
+    const next = getNextScriptedCapture();
+    if (!next || next.speciesId !== speciesId) {
+      return NextResponse.json(
+        { error: "demo_script_mismatch", expected: next?.speciesId ?? null },
+        { status: 400 },
+      );
+    }
+
     const spot = SPOTS[Math.floor(Math.random() * SPOTS.length)];
     const jitter = () => (Math.random() - 0.5) * 0.02;
-
-    let all: Observation[] = [];
-    try {
-      all = await readObservations();
-    } catch {
-      all = [];
-    }
 
     const observation: Observation = {
       id: `obs-cap-${Date.now()}`,
@@ -69,27 +85,49 @@ export async function POST(req: Request) {
       /* ignore */
     }
 
-    const isNewSpecies = !all.some(
-      (o) => o.userId === user.id && o.speciesId === speciesId,
+    const feedOnly = next.kind === "re_discover";
+    const alreadyDiscovered = feedOnly;
+    const onPyramidBefore = getDemoDiscoveredIds();
+    const isNewOnPyramid = !feedOnly && !onPyramidBefore.includes(speciesId);
+
+    const { pwValue, onPyramid, pyramidComplete, newPyramidLevel } = completeCapture(
+      speciesId,
+      { feedOnly },
     );
-    const reward = rewardForCapture(species, isNewSpecies);
-    const { feed, pwValue } = completeCapture(speciesId);
-    const myDiscovered = Array.from(
-      new Set(
-        all
-          .concat(observation)
-          .filter((o) => o.userId === user.id)
-          .map((o) => o.speciesId),
-      ),
-    );
+
+    const advance = advanceDemoCapture(next);
+    if (!advance.ok) {
+      return NextResponse.json({ error: "demo_advance_failed" }, { status: 400 });
+    }
+
+    let reward = rewardForCapture(species, isNewOnPyramid);
+    if (pyramidComplete) {
+      reward = { ...PYRAMID_COMPLETE_REWARD };
+      grantGuestBMile(PYRAMID_COMPLETE_REWARD.points);
+    } else if (feedOnly) {
+      reward = {
+        xp: Math.max(40, Math.round(reward.xp * 0.25)),
+        points: Math.max(10, Math.round(reward.points * 0.3)),
+      };
+    }
 
     return NextResponse.json({
       observation,
       reward,
-      isNewSpecies,
-      myDiscovered,
+      isNewSpecies: isNewOnPyramid,
+      alreadyDiscovered,
+      myDiscovered: getDemoDiscoveredIds(),
       userId: user.id,
       feed: { pwValue },
+      feedOnly,
+      onPyramid,
+      pyramidComplete,
+      demoPyramidLevel: newPyramidLevel,
+      demo: {
+        pyramidLevel: newPyramidLevel,
+        captureStep: getDemoCaptureStep(),
+        nextCapture: getNextScriptedCapture(),
+      },
     });
   } catch (e) {
     return NextResponse.json(

@@ -31,6 +31,11 @@ export function getGuestWallet() {
   return { balance, coupons: [...coupons] };
 }
 
+export function grantGuestBMile(amount: number): number {
+  balance += amount;
+  return balance;
+}
+
 /** Spend B-mile (e.g. 保護柵 = 1 B-mile). Returns the new balance, or null if insufficient. */
 export function spendGuestBMile(cost: number): number | null {
   if (cost < 0 || balance < cost) return null;

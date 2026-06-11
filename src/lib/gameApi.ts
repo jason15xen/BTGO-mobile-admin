@@ -21,6 +21,8 @@ export type GameState = {
   fencedIds: string[];
   loginBonus: boolean;
   invasive: Record<Ecosystem, boolean>;
+  demoPyramidLevel?: number;
+  pyramidJustCompleted?: boolean;
 };
 
 export type FeedResult =
@@ -59,6 +61,8 @@ export async function fetchGameState(): Promise<GameState> {
       fencedIds: [],
       loginBonus: false,
       invasive: { terrestrial: false, freshwater: false, marine: false },
+      demoPyramidLevel: 1,
+      pyramidJustCompleted: false,
     };
   }
   return res.json();

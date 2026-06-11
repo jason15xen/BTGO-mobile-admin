@@ -1,13 +1,12 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { LuLightbulb, LuX, LuInfo, LuUtensils } from "react-icons/lu";
+import { LuLightbulb, LuX, LuInfo, LuUtensils, LuPartyPopper } from "react-icons/lu";
 import { slotHintFor } from "@/lib/slotHint";
 import Pyramid from "@/components/Pyramid";
 import { ECOSYSTEM_LABEL } from "@/data/species";
 import { SPECIES_INFO } from "@/data/speciesInfo";
 import { ECO_THEME } from "@/lib/theme";
-import { validPredatorsForFeed } from "@/lib/feedRules";
 import { fetchGameState, postFeed, postFence } from "@/lib/gameApi";
 import type { Ecosystem, FeedItem } from "@/lib/types";
 import { PageHero, Screen, Card, ProgressBar } from "@/components/ui";
@@ -40,11 +39,13 @@ export default function PyramidClient({
   discovered,
   totals,
   discoveries,
+  demoPyramidLevel = 1,
 }: {
   userId: string;
   discovered: string[];
   totals: Record<string, number>;
   discoveries: Record<string, Discovery>;
+  demoPyramidLevel?: number;
 }) {
   const [eco, setEco] = useState<Ecosystem>("terrestrial");
   const [sel, setSel] = useState<{ s: Species; found: boolean } | null>(null);
@@ -64,13 +65,18 @@ export default function PyramidClient({
   const [feedHoverId, setFeedHoverId] = useState<string | null>(null);
   const [dragPos, setDragPos] = useState<{ x: number; y: number } | null>(null);
   const dragRef = useRef<FeedItem | null>(null);
+  const pointerStartRef = useRef<{ x: number; y: number } | null>(null);
   const set = useMemo(() => new Set(discovered), [discovered]);
+  const DRAG_THRESHOLD = 8;
 
   const [invasive, setInvasive] = useState<Record<Ecosystem, boolean>>({
     terrestrial: false,
     freshwater: false,
     marine: false,
   });
+  const [level, setLevel] = useState(demoPyramidLevel);
+  const [showLevelUp, setShowLevelUp] = useState(false);
+  const [pyramidFlipping, setPyramidFlipping] = useState(false);
 
   const refreshGame = useCallback(async () => {
     const state = await fetchGameState();
@@ -81,6 +87,14 @@ export default function PyramidClient({
     setExtinctIds(new Set(state.extinctIds));
     setFencedIds(new Set(state.fencedIds));
     setInvasive(state.invasive);
+    if (state.demoPyramidLevel) setLevel(state.demoPyramidLevel);
+    if (state.pyramidJustCompleted) {
+      setPyramidFlipping(true);
+      window.setTimeout(() => {
+        setPyramidFlipping(false);
+        setShowLevelUp(true);
+      }, 1400);
+    }
     if (state.loginBonus) setToast("🎁 ログインボーナス：みんなの生命力 +1pw！");
   }, []);
 
@@ -95,7 +109,9 @@ export default function PyramidClient({
   }, [toast]);
 
   const total = totals[eco] ?? 0;
-  const found = discovered.filter((id) => id.startsWith(eco[0] + "-")).length;
+  const found = mounted
+    ? [...activeIds].filter((id) => id.startsWith(eco[0] + "-")).length
+    : discovered.filter((id) => id.startsWith(eco[0] + "-")).length;
   const pct = total ? Math.round((found / total) * 100) : 0;
   const invasiveThreat = mounted && invasive[eco];
   // Food is generic — every feed can go to any creature, regardless of tab.
@@ -123,8 +139,8 @@ export default function PyramidClient({
       }
       return;
     }
-    // If a food card is selected, tapping a creature feeds it.
-    if (selectedFood && activeTile) {
+    // If a food card is selected, tapping a living pyramid tile feeds it.
+    if (selectedFood && activeIds.has(s.id)) {
       const food = selectedFood;
       setSelectedFood(null);
       void dropFeedOn(food, s.id);
@@ -139,10 +155,16 @@ export default function PyramidClient({
     setHighlightedId(s.id);
   }
 
+  const feedTargetSet = useMemo(() => {
+    if (!mounted || activeIds.size === 0) return new Set<string>();
+    return new Set([...activeIds].filter((id) => set.has(id)));
+  }, [mounted, activeIds, set]);
+
   const feedDropTargets = useMemo(() => {
-    if (!dragFeed) return new Set<string>();
-    return new Set(validPredatorsForFeed(dragFeed, set).map((p) => p.id));
-  }, [dragFeed, set]);
+    if (!selectedFood && !dragFeed) return undefined;
+    if (feedTargetSet.size === 0) return undefined;
+    return feedTargetSet;
+  }, [selectedFood, dragFeed, feedTargetSet]);
 
   function speciesAtPoint(x: number, y: number, allowed?: Set<string>): string | null {
     for (const el of document.elementsFromPoint(x, y)) {
@@ -174,7 +196,8 @@ export default function PyramidClient({
       }
       return;
     }
-    setFoodPw(result.foodPw); // instant deduction
+    setFoodPw(result.foodPw);
+    setPwMap((prev) => ({ ...prev, [targetSpeciesId]: result.newPw }));
     if (result.recovered) {
       // weak creature rescued — pink-cheek celebration (spec §3)
       setToast(`💗 ${result.predatorName} が元気になった！ +${result.gained}pw ♪`);
@@ -195,8 +218,7 @@ export default function PyramidClient({
   }
 
   function startNativeFeedDrag(feed: FeedItem, e: React.DragEvent<HTMLElement>) {
-    const predators = validPredatorsForFeed(feed, set);
-    if (predators.length === 0) {
+    if (feedTargetSet.size === 0) {
       e.preventDefault();
       return;
     }
@@ -207,32 +229,85 @@ export default function PyramidClient({
   }
 
   function endNativeFeedDrag() {
-    if (!dragRef.current) return;
+    // onDragEnd can fire before onDrop — defer clear so drop still has feed context.
+    window.setTimeout(() => {
+      if (dragRef.current) clearFeedDrag();
+    }, 0);
+  }
+
+  function resolveFeed(feedId?: string): FeedItem | null {
+    return (
+      dragRef.current ??
+      dragFeed ??
+      selectedFood ??
+      (feedId ? feeds.find((f) => f.id === feedId) ?? null : null)
+    );
+  }
+
+  async function onFeedDropOnTile(targetSpeciesId: string, feedId?: string) {
+    const feed = resolveFeed(feedId);
+    if (!feed) return;
+    setSelectedFood(null);
+    await dropFeedOn(feed, targetSpeciesId);
     clearFeedDrag();
   }
 
-  async function onFeedDropOnTile(targetSpeciesId: string) {
-    const feed = dragRef.current ?? dragFeed;
-    if (!feed) return;
-    await dropFeedOn(feed, targetSpeciesId);
-    clearFeedDrag();
+  function beginPointerFeed(feed: FeedItem, e: React.PointerEvent<HTMLButtonElement>) {
+    if (!(mounted && activeIds.size > 0 && foodPw >= feed.pwValue)) return;
+    pointerStartRef.current = { x: e.clientX, y: e.clientY };
+  }
+
+  function movePointerFeed(feed: FeedItem, e: React.PointerEvent<HTMLButtonElement>) {
+    const start = pointerStartRef.current;
+    if (!start) return;
+    const moved = Math.hypot(e.clientX - start.x, e.clientY - start.y);
+    if (!dragRef.current && moved < DRAG_THRESHOLD) return;
+    if (!dragRef.current) {
+      e.currentTarget.setPointerCapture(e.pointerId);
+      dragRef.current = feed;
+      setDragFeed(feed);
+      document.body.style.touchAction = "none";
+      document.body.style.userSelect = "none";
+    }
+    setDragPos({ x: e.clientX, y: e.clientY });
+    setFeedHoverId(speciesAtPoint(e.clientX, e.clientY, feedTargetSet));
+  }
+
+  function endPointerFeed(feed: FeedItem, e: React.PointerEvent<HTMLButtonElement>) {
+    const dragging = Boolean(dragRef.current);
+    if (dragging) {
+      try {
+        e.currentTarget.releasePointerCapture(e.pointerId);
+      } catch {
+        /* already released */
+      }
+      const id = speciesAtPoint(e.clientX, e.clientY, feedTargetSet);
+      if (id) void dropFeedOn(feed, id);
+      clearFeedDrag();
+    }
+    pointerStartRef.current = null;
   }
 
   return (
     <div>
       <PageHero
         title="生態系ピラミッド"
-        subtitle="発見した生き物で食物連鎖を完成させよう"
+        subtitle={`Lv.${level} — 発見した生き物で食物連鎖を完成させよう`}
         gradient={`${ECO_THEME[eco].gradient}`}
         bgImage={`/eco/${eco}.webp`}
         right={
-          <button
-            onClick={() => setHelp(true)}
-            aria-label="ヘルプ"
-            className="w-9 h-9 rounded-full bg-white/20 active:bg-white/30 flex items-center justify-center text-white shrink-0"
-          >
-            <LuInfo size={18} />
-          </button>
+          <div className="flex items-center gap-2 shrink-0">
+            <span className="bg-white/25 text-white text-xs font-bold rounded-full px-2.5 py-1">
+              ピラミッド Lv.{level}
+            </span>
+            <button
+              onClick={() => setHelp(true)}
+              aria-label="ヘルプ"
+              className="w-9 h-9 rounded-full bg-white/20 active:bg-white/30 flex items-center justify-center text-white"
+            >
+              <LuInfo size={18} />
+            </button>
+          </div>
         }
       />
       <Screen>
@@ -283,6 +358,7 @@ export default function PyramidClient({
             <p className="mb-3 mx-1 text-xs text-sky-700 font-semibold text-center">赤枠の外来種をタップして隔離しよう</p>
           )}
 
+          <div className={pyramidFlipping ? "pyramid-deck-flip" : ""}>
           <Pyramid
             ecosystem={eco}
             discovered={set}
@@ -293,11 +369,12 @@ export default function PyramidClient({
             invasiveThreat={invasiveThreat}
             selectedId={highlightedId}
             onSelect={onTileSelect}
-            feedDropTargets={dragFeed ? feedDropTargets : undefined}
+            feedDropTargets={feedDropTargets}
             feedHoverId={feedHoverId}
             onFeedHover={setFeedHoverId}
-            onFeedDrop={(id) => void onFeedDropOnTile(id)}
+            onFeedDrop={(id, feedId) => void onFeedDropOnTile(id, feedId)}
           />
+          </div>
 
           {/* Feed — 1/3/9 pw cards in one row. Tap a card then a creature (or drag). */}
           <div className="mt-4 rounded-2xl bg-neutral-50 border border-neutral-100 p-3">
@@ -310,7 +387,7 @@ export default function PyramidClient({
             </div>
             <div className="grid grid-cols-3 gap-2 mt-2">
               {ecoFeeds.map((f) => {
-                const canFeed = set.size > 0 && foodPw >= f.pwValue;
+                const canFeed = mounted && activeIds.size > 0 && foodPw >= f.pwValue;
                 const isSel = selectedFood?.id === f.id;
                 return (
                   <button
@@ -319,6 +396,10 @@ export default function PyramidClient({
                     disabled={!canFeed}
                     draggable={canFeed}
                     onClick={() => setSelectedFood(isSel ? null : f)}
+                    onPointerDown={(e) => beginPointerFeed(f, e)}
+                    onPointerMove={(e) => movePointerFeed(f, e)}
+                    onPointerUp={(e) => endPointerFeed(f, e)}
+                    onPointerCancel={(e) => endPointerFeed(f, e)}
                     onDragStart={(e) => startNativeFeedDrag(f, e)}
                     onDragEnd={endNativeFeedDrag}
                     className={`rounded-xl py-2.5 flex flex-col items-center border transition-all select-none ${
@@ -338,7 +419,7 @@ export default function PyramidClient({
             <p className="text-[11px] text-neutral-500 mt-2 text-center">
               {selectedFood
                 ? `「+${selectedFood.pwValue}pw」を与える生き物をタップ`
-                : "餌をタップして選び、生き物をタップ（最大10pw）"}
+                : "餌をタップして選び、生き物をタップ"}
             </p>
           </div>
 
@@ -375,6 +456,25 @@ export default function PyramidClient({
       ) : null}
 
       {help && <HelpSheet onClose={() => setHelp(false)} />}
+
+      {showLevelUp && (
+        <div className="fixed inset-0 z-[70] bg-black/60 backdrop-blur-sm flex items-center justify-center p-6 modal-backdrop">
+          <div className="w-full max-w-sm bg-white rounded-3xl p-6 text-center shadow-2xl modal-sheet animate-scaleIn">
+            <LuPartyPopper size={40} className="mx-auto text-gold-500 animate-wiggle" />
+            <h2 className="mt-3 text-xl font-bold text-neutral-800">ピラミッド完成！</h2>
+            <p className="text-sm text-neutral-500 mt-2">
+              カードが回転して未発見の10枠に入れ替わりました。+30 B-mile と経験値を獲得！
+            </p>
+            <button
+              type="button"
+              onClick={() => setShowLevelUp(false)}
+              className="w-full mt-5 bg-forest-600 text-white font-bold rounded-xl py-3"
+            >
+              新しいピラミッドを見る
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -395,11 +495,11 @@ function HelpSheet({ onClose }: { onClose: () => void }) {
         <div className="px-6 pb-7 space-y-3">
           <HelpRow title="食物連鎖を完成させよう" body="各生態系に10種類（1→2→3→4段）の枠があります。撮影で生き物がピラミッドに並び、最初は10pwでスタートします。" />
           <HelpRow title="生命力（pw）" body="毎日1pwずつ減ります（植物などの生産者は減りません）。0になった個体はグレーで残り、再撮影すると新しい個体が入ります。毎日のログインで全員+1pw。" />
-          <HelpRow title="餌で成長" body="餌は 1pw・3pw・9pw の3サイズがあり、どの生き物にも与えられます。ドラッグしてドロップするとpwが回復します（最大10pw・あふれた分は無駄になります）。所持している餌の合計pwは自動で表示されます。" />
-          <HelpRow title="生命力と大きさ" body="pwが10以上の元気な個体は大きく、3以下の弱った個体は小さく表示されます。毎日1pwずつ減っていきます。" />
+          <HelpRow title="餌で成長" body="餌は 1pw・3pw・9pw の3サイズがあり、どの生き物にも与えられます。ドラッグしてドロップするとpwが加算され、上限なく積み上がります。所持している餌の合計pwは自動で表示されます。" />
+          <HelpRow title="生命力と大きさ" body="pwが3〜10は中サイズ、10より大きい個体は大きく、3未満の弱った個体は小さく表示されます。毎日1pwずつ減っていきます。" />
           <HelpRow title="詳細を見る" body="タップで枠が光って強調されます。もう一度同じ枠をタップすると詳細（未発見はヒント）が開きます。時間をおいてもOKです。" />
           <HelpRow title="外来種に注意" body="外来種は赤枠で表示され、同じ段の在来種の生命力が減りやすくなります。保護柵（1 B-mile）で隔離すると影響がやわらぎます。" />
-          <HelpRow title="弱った個体を助けよう" body="生命力1〜3の弱った個体に餌をあげると回復ボーナス+1pw。元気になって喜びます💗" />
+          <HelpRow title="弱った個体を助けよう" body="生命力3未満の弱った個体に餌をあげると回復ボーナス+1pw。元気になって喜びます💗" />
           <button onClick={onClose} className="w-full mt-2 bg-forest-600 text-white font-bold rounded-xl py-3">とじる</button>
         </div>
       </div>

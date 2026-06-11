@@ -361,6 +361,27 @@ body {
     z-index: 20;
   }
 
+  @keyframes pyramid-deck-flip {
+    0% {
+      transform: perspective(900px) rotateY(0deg) scale(1);
+      opacity: 1;
+    }
+    40% {
+      transform: perspective(900px) rotateY(88deg) scale(0.92);
+      opacity: 0.35;
+    }
+    100% {
+      transform: perspective(900px) rotateY(0deg) scale(1);
+      opacity: 1;
+    }
+  }
+
+  .pyramid-deck-flip {
+    animation: pyramid-deck-flip 1.35s ease-in-out;
+    transform-style: preserve-3d;
+    transform-origin: center center;
+  }
+
   /* Stars eject from tile perimeter — new species */
   .species-starlight__halo {
     position: absolute;

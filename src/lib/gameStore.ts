@@ -1,8 +1,18 @@
 import "server-only";
 import { randomUUID } from "node:crypto";
 import { SPECIES, SPECIES_BY_ID } from "@/data/species";
-import { captureFeedPw, INITIAL_PW, MAX_PW, FOOD_VALUES, PW_WEAK_THRESHOLD } from "@/lib/creature";
+import { captureFeedPw, INITIAL_PW, FOOD_VALUES, PW_WEAK_THRESHOLD } from "@/lib/creature";
 import { validPredatorsForFeed, invasiveForEcosystem } from "@/lib/feedRules";
+import {
+  consumePyramidJustCompleted,
+  getDemoDiscoveredIds,
+  getDemoInitialIndividuals,
+  getDemoPyramidLevel,
+  getTerrestrialRound,
+  markTerrestrialPyramidCompleted,
+  shouldSeedInitialPyramid,
+} from "@/lib/demoState";
+import { terrestrialPyramidSpecies } from "@/lib/demoScript";
 import { DEMO_USER } from "@/lib/game";
 import type { Ecosystem, FeedItem, Individual, Species } from "@/lib/types";
 
@@ -96,9 +106,15 @@ function upsertIndividual(speciesId: string, userId: string) {
   ]);
 }
 
-export function completeCapture(speciesId: string): {
+export function completeCapture(
+  speciesId: string,
+  options?: { feedOnly?: boolean },
+): {
   feed: FeedItem;
   pwValue: number;
+  onPyramid: boolean;
+  pyramidComplete: boolean;
+  newPyramidLevel: number;
 } {
   const species = SPECIES_BY_ID[speciesId];
   if (!species) throw new Error("unknown_species");
@@ -113,29 +129,47 @@ export function completeCapture(speciesId: string): {
     pwValue,
     createdAt: new Date().toISOString(),
   };
-  // Capturing refills the food pool by the reward amount.
   foodPw += pwValue;
-  upsertIndividual(speciesId, USER_ID);
-  return { feed, pwValue };
+
+  const feedOnly = options?.feedOnly ?? false;
+  if (!feedOnly) {
+    upsertIndividual(speciesId, USER_ID);
+  }
+
+  let pyramidComplete = false;
+  if (!feedOnly && isTerrestrialPyramidComplete()) {
+    markTerrestrialPyramidCompleted();
+    individuals = individuals.filter(
+      (i) => SPECIES_BY_ID[i.speciesId]?.ecosystem !== "terrestrial",
+    );
+    pyramidComplete = true;
+  }
+
+  return {
+    feed,
+    pwValue,
+    onPyramid: !feedOnly,
+    pyramidComplete,
+    newPyramidLevel: getDemoPyramidLevel(),
+  };
 }
 
-/**
- * Demo starting vitality.
- * TESTING: every creature starts at 2 pw (small) so you can feed them and
- * watch them grow large. (Revert to a 1..10 spread for the real demo.)
- */
-function demoStartPw(_speciesId: string): number {
-  return 2;
+function isTerrestrialPyramidComplete(): boolean {
+  if (getTerrestrialRound() !== 1) return false;
+  const slots = terrestrialPyramidSpecies().map((s) => s.id);
+  const active = activeSpeciesIds(decayedIndividuals());
+  return slots.every((id) => active.has(id));
 }
 
-function ensureIndividualsForDiscovered(discovered: string[]) {
+function ensureDemoIndividuals() {
   if (individuals.length > 0) return;
+  if (!shouldSeedInitialPyramid()) return;
   const now = new Date().toISOString();
-  individuals = discovered.map((speciesId) => ({
+  individuals = getDemoInitialIndividuals().map(({ speciesId, pw }) => ({
     id: randomUUID(),
     speciesId,
     userId: USER_ID,
-    pw: demoStartPw(speciesId),
+    pw,
     createdAt: now,
     lastDecayAt: now,
   }));
@@ -158,22 +192,23 @@ function ensureFeedsForDiscovered(_discovered: string[]) {
   }
 }
 
-export function getGameState(discovered: string[]) {
-  ensureIndividualsForDiscovered(discovered);
-  ensureFeedsForDiscovered(discovered);
+export function getGameState(_discovered: string[]) {
+  ensureDemoIndividuals();
+  ensureFeedsForDiscovered([]);
   let list = decayedIndividuals().filter((i) => i.userId === USER_ID);
 
-  // Daily login bonus: +1pw to every living creature (up to base pw), once a day.
+  // Daily login bonus: +1pw to every living creature, once a day.
   const today = new Date().toISOString().slice(0, 10);
   let loginBonus = false;
   if (lastLoginBonusDay !== today) {
     lastLoginBonusDay = today;
     loginBonus = true;
-    list = list.map((i) => (i.pw > 0 ? { ...i, pw: Math.min(INITIAL_PW, i.pw + 1) } : i));
+    list = list.map((i) => (i.pw > 0 ? { ...i, pw: i.pw + 1 } : i));
   }
   persistIndividuals(list);
 
-  const discoveredSet = new Set(discovered);
+  const discoveredSet = new Set(getDemoDiscoveredIds());
+  const pyramidJustCompleted = consumePyramidJustCompleted();
   const pwMap = latestPwBySpecies(list);
   const activeIds = activeSpeciesIds(list);
   // Extinct: discovered creatures whose individual starved to 0 (kept, grayed out).
@@ -206,6 +241,8 @@ export function getGameState(discovered: string[]) {
     fencedIds: [...fencedIds],
     loginBonus,
     invasive,
+    demoPyramidLevel: getDemoPyramidLevel(),
+    pyramidJustCompleted,
   };
 }
 
@@ -248,11 +285,10 @@ function applyFeedToSpecies(
     list = [...list, target];
   }
 
-  // Weak creature (pw 1〜3): feeding grants a +1 recovery bonus (ほっぺピンク♪).
-  const recovered = target.pw > 0 && target.pw <= PW_WEAK_THRESHOLD;
+  // Weak creature (pw < 3): feeding grants a +1 recovery bonus (ほっぺピンク♪).
+  const recovered = target.pw > 0 && target.pw < PW_WEAK_THRESHOLD;
   const bonus = recovered ? 1 : 0;
-  // PW is capped at MAX_PW (10) — any overflow from the food is wasted.
-  const newPw = Math.min(MAX_PW, target.pw + feed.pwValue + bonus);
+  const newPw = target.pw + feed.pwValue + bonus;
   const gained = newPw - target.pw;
   persistIndividuals(
     list.map((i) => (i.id === target!.id ? { ...i, pw: newPw } : i)),
