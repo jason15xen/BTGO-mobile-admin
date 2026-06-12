@@ -8,10 +8,13 @@ import { ECO_THEME } from "@/lib/theme";
 import { rewardForCapture } from "@/lib/game";
 import type { Species } from "@/lib/types";
 import Pyramid from "@/components/Pyramid";
-import PyramidCelebrationDeck, { markPyramidCelebrationShown } from "@/components/PyramidCelebrationDeck";
+import PyramidCelebrationDeck, {
+  markPyramidCelebrationShown,
+  markViewPyramidAfterComplete,
+} from "@/components/PyramidCelebrationDeck";
 import SpeciesImage from "@/components/SpeciesImage";
 import { useImmersive } from "@/components/AppShell";
-import { fetchDemoCaptureState } from "@/lib/gameApi";
+import { ensureDemoSessionReady, fetchDemoCaptureState } from "@/lib/gameApi";
 import type { IconType } from "react-icons";
 import { FiX, FiZap, FiImage, FiCamera, FiMapPin, FiTag, FiBarChart2, FiAlertTriangle, FiBookOpen, FiChevronLeft } from "react-icons/fi";
 import { LuUtensils, LuPartyPopper, LuSwitchCamera } from "react-icons/lu";
@@ -114,18 +117,42 @@ export default function CaptureClient() {
 
   useEffect(() => stopCamera, [stopCamera]);
 
+  const applyDemoState = useCallback((demo: NonNullable<Awaited<ReturnType<typeof fetchDemoCaptureState>>>) => {
+    setDiscovered(new Set(demo.discovered));
+    setDemoPyramidLevel(demo.pyramidLevel);
+    setScriptedSpeciesId(demo.nextCapture?.speciesId ?? null);
+    setDemoMode(Boolean(demo.nextCapture));
+  }, []);
+
+  const syncDemoFromServer = useCallback(async () => {
+    const demo = await fetchDemoCaptureState();
+    if (demo) applyDemoState(demo);
+    return demo;
+  }, [applyDemoState]);
+
   useEffect(() => {
     async function init() {
-      const demo = await fetchDemoCaptureState();
-      if (demo) {
-        setDiscovered(new Set(demo.discovered));
-        setDemoPyramidLevel(demo.pyramidLevel);
-        setScriptedSpeciesId(demo.nextCapture?.speciesId ?? null);
-        setDemoMode(Boolean(demo.nextCapture));
-      }
+      await ensureDemoSessionReady();
+      await syncDemoFromServer();
     }
     void init();
-  }, []);
+  }, [syncDemoFromServer]);
+
+  useEffect(() => {
+    if (phase !== "camera") return;
+    void syncDemoFromServer();
+  }, [phase, syncDemoFromServer]);
+
+  function continueCapture() {
+    setSubject(null);
+    setShot(null);
+    setPyramidComplete(false);
+    setFeedOnly(false);
+    setAlreadyDiscovered(false);
+    setFeedGain(null);
+    setReward(null);
+    setPhase("camera");
+  }
 
   // AI analyzing progress.
   useEffect(() => {
@@ -175,6 +202,7 @@ export default function CaptureClient() {
   function onFile(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     if (!file) return;
+    if (demoMode && !scriptedSpeciesId) return;
     const reader = new FileReader();
     reader.onload = () => {
       setShot(typeof reader.result === "string" ? reader.result : null);
@@ -195,6 +223,17 @@ export default function CaptureClient() {
         body: JSON.stringify({ speciesId: subject.id, photoData: shot ?? undefined }),
       });
       const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        const expected = data.expected ? SPECIES_BY_ID[data.expected as string]?.nameJa ?? data.expected : null;
+        alert(
+          expected
+            ? `デモの順番がずれています。次は「${expected}」を撮影してください。`
+            : "登録に失敗しました。もう一度お試しください。",
+        );
+        await syncDemoFromServer();
+        setPhase("camera");
+        return;
+      }
       const rw = data.reward ?? rewardForCapture(subject, guessedNew);
       const uid = data.userId ?? userId;
       setUserId(uid);
@@ -427,7 +466,11 @@ export default function CaptureClient() {
         subject={subject}
         level={demoPyramidLevel}
         reward={reward}
-        onViewPyramid={() => router.push("/pyramid")}
+        onViewPyramid={() => {
+          markViewPyramidAfterComplete(demoPyramidLevel);
+          router.push(`/pyramid?lv=${demoPyramidLevel}`);
+        }}
+        onContinueCapture={continueCapture}
       />
     );
   }
@@ -509,7 +552,7 @@ export default function CaptureClient() {
             ピラミッド
           </button>
           <button
-            onClick={() => { setSubject(null); setShot(null); setPhase("camera"); }}
+            onClick={continueCapture}
             className={`bg-gradient-to-r ${theme.gradient} text-white font-bold rounded-2xl py-3.5 border-[1.5px] border-white/25 btn3d`}
           >
             続けて撮影
@@ -525,11 +568,13 @@ function PyramidCompleteScreen({
   level,
   reward,
   onViewPyramid,
+  onContinueCapture,
 }: {
   subject: Species;
   level: number;
   reward: { xp: number; points: number } | null;
   onViewPyramid: () => void;
+  onContinueCapture: () => void;
 }) {
   const [celebrationDone, setCelebrationDone] = useState(false);
 
@@ -556,14 +601,29 @@ function PyramidCompleteScreen({
           <Stat label="獲得B-mile" value={`+${reward?.points ?? 30}`} className="stagger-4" />
           <Stat label="獲得XP" value={`+${reward?.xp ?? 150}`} className="stagger-5" />
         </div>
-        <button
-          type="button"
-          onClick={onViewPyramid}
-          disabled={!celebrationDone}
-          className="w-full bg-forest-600 disabled:opacity-40 disabled:scale-100 text-white font-bold rounded-2xl py-4 btn3d transition-opacity duration-500"
+        <div
+          className={`grid grid-cols-2 gap-3 transition-opacity duration-500 ${
+            celebrationDone ? "opacity-100" : "opacity-0 pointer-events-none"
+          }`}
         >
-          {celebrationDone ? "新しいピラミッドを見る" : "お祝い演出中…"}
-        </button>
+          <button
+            type="button"
+            onClick={onViewPyramid}
+            className="bg-white border-[1.5px] border-neutral-200 text-neutral-700 font-semibold rounded-2xl py-4"
+          >
+            ピラミッドを見る
+          </button>
+          <button
+            type="button"
+            onClick={onContinueCapture}
+            className="bg-forest-600 text-white font-bold rounded-2xl py-4 btn3d"
+          >
+            続けて撮影
+          </button>
+        </div>
+        {!celebrationDone && (
+          <p className="text-center text-xs text-neutral-400">お祝い演出中…</p>
+        )}
       </div>
     </div>
   );

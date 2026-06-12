@@ -1,3 +1,4 @@
+import { isPageReload } from "@/lib/isPageReload";
 import type { DiaryEntry, Ecosystem, FeedItem, UserProfile } from "@/lib/types";
 import type { PyramidEcoSummary } from "@/lib/pyramidSummary";
 import type { UserStats } from "@/lib/game";
@@ -50,7 +51,31 @@ export async function updatePlayer(patch: {
 }
 
 export async function resetDemoFlow(): Promise<void> {
+  if (typeof sessionStorage !== "undefined") {
+    sessionStorage.removeItem("btgo-pyramid-celebrated");
+    sessionStorage.removeItem("btgo-view-pyramid");
+  }
   await fetch("/api/demo/reset", { method: "POST", cache: "no-store" });
+}
+
+declare global {
+  interface Window {
+    __btgoDemoResetDone?: boolean;
+  }
+}
+
+/**
+ * Reset demo once per full page load (F5).
+ * `isPageReload()` stays true for the whole tab session after F5, so we must NOT
+ * reset on every client navigation / component mount.
+ */
+export async function ensureDemoSessionReady(): Promise<void> {
+  if (!isPageReload()) return;
+  if (typeof window !== "undefined") {
+    if (window.__btgoDemoResetDone) return;
+    window.__btgoDemoResetDone = true;
+  }
+  await resetDemoFlow();
 }
 
 export type DemoCaptureState = {
@@ -67,6 +92,29 @@ export async function fetchDemoCaptureState(): Promise<DemoCaptureState | null> 
     discovered: Array.isArray(data.discovered) ? data.discovered : [],
     pyramidLevel: data.demo?.pyramidLevel ?? 1,
     nextCapture: data.demo?.nextCapture ?? null,
+  };
+}
+
+export type DemoStateSnapshot = DemoCaptureState & {
+  game: GameState;
+  pyramidFill: Record<"terrestrial" | "freshwater" | "marine", string[]>;
+};
+
+export async function fetchDemoStateSnapshot(): Promise<DemoStateSnapshot | null> {
+  const res = await fetch("/api/demo/state", { cache: "no-store" });
+  if (!res.ok) return null;
+  const data = await res.json();
+  const fill = data.pyramidFill ?? {};
+  return {
+    discovered: Array.isArray(data.discovered) ? data.discovered : [],
+    pyramidLevel: data.pyramidLevel ?? 1,
+    nextCapture: data.nextCapture ?? null,
+    pyramidFill: {
+      terrestrial: Array.isArray(fill.terrestrial) ? fill.terrestrial : [],
+      freshwater: Array.isArray(fill.freshwater) ? fill.freshwater : [],
+      marine: Array.isArray(fill.marine) ? fill.marine : [],
+    },
+    game: data.game as GameState,
   };
 }
 

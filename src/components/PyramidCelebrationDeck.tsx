@@ -27,6 +27,22 @@ export function consumePyramidCelebrationShown(): boolean {
   return true;
 }
 
+/** Tell the pyramid page to open at Lv.2+ (empty terrestrial deck) after capture completion. */
+export function markViewPyramidAfterComplete(level: number) {
+  if (typeof sessionStorage !== "undefined" && level > 1) {
+    sessionStorage.setItem("btgo-view-pyramid", String(level));
+  }
+}
+
+export function consumeViewPyramidAfterComplete(): number | null {
+  if (typeof sessionStorage === "undefined") return null;
+  const raw = sessionStorage.getItem("btgo-view-pyramid");
+  if (!raw) return null;
+  sessionStorage.removeItem("btgo-view-pyramid");
+  const level = Number(raw);
+  return Number.isFinite(level) && level > 1 ? level : null;
+}
+
 export default function PyramidCelebrationDeck({
   ecosystem = "terrestrial",
   fullDiscoveredIds = TERRESTRIAL_PYRAMID_IDS,

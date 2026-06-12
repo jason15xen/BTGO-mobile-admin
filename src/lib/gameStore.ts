@@ -5,13 +5,13 @@ import { captureFeedPw, INITIAL_PW, FOOD_VALUES, PW_WEAK_THRESHOLD } from "@/lib
 import { validPredatorsForFeed, invasiveForEcosystem } from "@/lib/feedRules";
 import {
   consumePyramidJustCompleted,
+  getDemoActiveSpeciesIds,
   getDemoDiscoveredIds,
-  getDemoInitialIndividuals,
   getDemoPyramidLevel,
   getTerrestrialRound,
   markTerrestrialPyramidCompleted,
-  shouldSeedInitialPyramid,
 } from "@/lib/demoState";
+import { DEMO_INITIAL_INDIVIDUALS } from "@/lib/demoScript";
 import { terrestrialPyramidSpecies } from "@/lib/demoScript";
 import { DEMO_USER } from "@/lib/game";
 import { createServerMemory } from "@/lib/serverMemory";
@@ -168,21 +168,47 @@ function isTerrestrialPyramidComplete(): boolean {
   return slots.every((id) => active.has(id));
 }
 
-function ensureDemoIndividuals() {
+const INITIAL_PW_MAP = new Map(DEMO_INITIAL_INDIVIDUALS.map((i) => [i.speciesId, i.pw]));
+
+/** Keep game individuals aligned with demo script — never blindly re-seed the Lv.1 deck. */
+function syncIndividualsFromDemo() {
   const mem = getMemory();
-  if (mem.individuals.length > 0) return;
-  if (!shouldSeedInitialPyramid()) return;
+  const targetIds = new Set(getDemoActiveSpeciesIds());
+  const round = getTerrestrialRound();
+
+  let list = decayedIndividuals().filter((i) => i.userId === USER_ID);
+
+  if (round > 1) {
+    list = list.filter((i) => !i.speciesId.startsWith("t-"));
+  }
+
+  const existing = new Map(list.map((i) => [i.speciesId, i]));
   const now = new Date().toISOString();
-  mem.individuals = getDemoInitialIndividuals().map(({ speciesId, pw }) => ({
-    id: randomUUID(),
-    speciesId,
-    userId: USER_ID,
-    pw,
-    createdAt: now,
-    lastDecayAt: now,
-  }));
-  // Keep seeded pw as-is on first load (e.g. ground-tier 2pw individuals stay at 2).
-  mem.lastLoginBonusDay = now.slice(0, 10);
+  const next: Individual[] = [];
+
+  for (const speciesId of targetIds) {
+    if (round > 1 && speciesId.startsWith("t-")) continue;
+    const prev = existing.get(speciesId);
+    if (prev) {
+      next.push(prev);
+      continue;
+    }
+    next.push({
+      id: randomUUID(),
+      speciesId,
+      userId: USER_ID,
+      pw: INITIAL_PW_MAP.get(speciesId) ?? INITIAL_PW,
+      createdAt: now,
+      lastDecayAt: now,
+    });
+  }
+
+  mem.individuals = next;
+  if (!mem.lastLoginBonusDay) mem.lastLoginBonusDay = now.slice(0, 10);
+}
+
+function ensureDemoIndividuals() {
+  syncIndividualsFromDemo();
 }
 
 /** Fixed, reusable food set — one card per size (1 / 3 / 9 pw). */
@@ -217,6 +243,12 @@ export function getGameState(_discovered: string[]) {
     list = list.map((i) => (i.pw > 0 ? { ...i, pw: i.pw + 1 } : i));
   }
   persistIndividuals(list);
+
+  const demoRound = getTerrestrialRound();
+  if (demoRound > 1) {
+    list = list.filter((i) => !i.speciesId.startsWith("t-"));
+    persistIndividuals(list);
+  }
 
   const discoveredSet = new Set(getDemoDiscoveredIds());
   const pyramidJustCompleted = consumePyramidJustCompleted();

@@ -5,9 +5,9 @@
   "scripts": {
     "clean": "node -e \"require('fs').rmSync('.next',{recursive:true,force:true})\"",
     "kill-port": "node scripts/kill-port-3001.cjs",
-    "dev": "next dev -p 3001 --turbo",
+    "dev": "next dev -p 3001",
+    "dev:turbo": "next dev -p 3001 --turbo",
     "dev:reset": "node scripts/kill-port-3001.cjs && npm run clean && npm run dev",
-    "dev:webpack": "next dev -p 3001",
     "dev:https": "next dev -p 3001 --experimental-https --experimental-https-key ./certs/key.pem --experimental-https-cert ./certs/cert.pem",
     "prebuild": "npm run clean",
     "build": "next build",

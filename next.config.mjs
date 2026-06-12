@@ -3,7 +3,8 @@ const nextConfig = {
   reactStrictMode: false,
   webpack: (config, { dev }) => {
     if (dev) {
-      // Windows file-watcher gaps can leave HMR pointing at deleted chunk files.
+      // Default `npm run dev` uses webpack (not turbo) so these apply on Windows.
+      // After `npm run clean` / `npm run build`, restart dev (`npm run dev:reset`).
       config.watchOptions = {
         poll: 1000,
         aggregateTimeout: 300,

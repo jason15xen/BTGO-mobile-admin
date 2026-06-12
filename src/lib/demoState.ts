@@ -5,6 +5,7 @@ import {
   type DemoCaptureEntry,
 } from "@/lib/demoScript";
 import { createServerMemory } from "@/lib/serverMemory";
+import type { Ecosystem } from "@/lib/types";
 
 type DemoMemory = {
   terrestrialRound: number;
@@ -44,24 +45,57 @@ export function getNextScriptedCapture(): DemoCaptureEntry | null {
 }
 
 export function getDemoDiscoveredIds(): string[] {
-  const mem = getMemory();
-  const ids = new Set(getDemoInitialIndividualIds(mem.terrestrialRound));
-  for (let i = 0; i < mem.captureStep; i++) {
-    const cap = DEMO_CAPTURE_SCRIPT[i];
-    if (cap.kind === "new_species") ids.add(cap.speciesId);
-  }
-  // After terrestrial Lv.1 completes, the deck resets — terrestrial slots start undiscovered again.
-  if (mem.terrestrialRound > 1) {
-    return [...ids].filter((id) => !id.startsWith("t-"));
+  const ecosystems: Ecosystem[] = ["terrestrial", "freshwater", "marine"];
+  const ids = new Set<string>();
+  for (const eco of ecosystems) {
+    for (const id of getPyramidFilledIds(eco)) ids.add(id);
   }
   return [...ids];
 }
 
-function getDemoInitialIndividualIds(terrestrialRound: number): string[] {
-  if (terrestrialRound > 1) {
-    return DEMO_INITIAL_INDIVIDUALS.filter((i) => i.speciesId.startsWith("f-")).map((i) => i.speciesId);
+/** Authoritative filled pyramid slots per ecosystem (drives UI). */
+export function getPyramidFilledIds(ecosystem: Ecosystem): string[] {
+  const mem = getMemory();
+  const prefix = ecosystem === "terrestrial" ? "t-" : ecosystem === "freshwater" ? "f-" : "m-";
+
+  if (ecosystem === "terrestrial" && mem.terrestrialRound > 1) {
+    return [];
   }
-  return DEMO_INITIAL_INDIVIDUALS.map((i) => i.speciesId);
+
+  const filled = new Set<string>();
+
+  if (mem.terrestrialRound === 1) {
+    for (const { speciesId } of DEMO_INITIAL_INDIVIDUALS) {
+      if (speciesId.startsWith(prefix)) filled.add(speciesId);
+    }
+  } else {
+    for (const { speciesId } of DEMO_INITIAL_INDIVIDUALS) {
+      if (speciesId.startsWith("f-")) filled.add(speciesId);
+    }
+  }
+
+  for (let i = 0; i < mem.captureStep; i++) {
+    const cap = DEMO_CAPTURE_SCRIPT[i];
+    if (cap.kind !== "new_species") continue;
+    if (!cap.speciesId.startsWith(prefix)) continue;
+    if (ecosystem === "terrestrial" && mem.terrestrialRound > 1) continue;
+    filled.add(cap.speciesId);
+  }
+
+  return [...filled];
+}
+
+export function getPyramidFilledMap(): Record<Ecosystem, string[]> {
+  return {
+    terrestrial: getPyramidFilledIds("terrestrial"),
+    freshwater: getPyramidFilledIds("freshwater"),
+    marine: getPyramidFilledIds("marine"),
+  };
+}
+
+/** Species that should exist as game individuals for the current demo step. */
+export function getDemoActiveSpeciesIds(): string[] {
+  return getDemoDiscoveredIds();
 }
 
 export function advanceDemoCapture(entry: DemoCaptureEntry) {

@@ -1,14 +1,18 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { usePathname } from "next/navigation";
 import { LuLightbulb, LuX, LuInfo, LuUtensils } from "react-icons/lu";
 import { slotHintFor } from "@/lib/slotHint";
 import Pyramid from "@/components/Pyramid";
-import PyramidCelebrationDeck, { consumePyramidCelebrationShown } from "@/components/PyramidCelebrationDeck";
+import PyramidCelebrationDeck, {
+  consumePyramidCelebrationShown,
+  consumeViewPyramidAfterComplete,
+} from "@/components/PyramidCelebrationDeck";
 import { ECOSYSTEM_LABEL } from "@/data/species";
 import { SPECIES_INFO } from "@/data/speciesInfo";
 import { ECO_THEME } from "@/lib/theme";
-import { fetchDemoCaptureState, fetchGameState, postFeed, postFence } from "@/lib/gameApi";
+import { ensureDemoSessionReady, fetchDemoStateSnapshot, postFeed, postFence } from "@/lib/gameApi";
 import type { Ecosystem, FeedItem } from "@/lib/types";
 import { PageHero, Screen, Card } from "@/components/ui";
 import SpeciesDetailSheet from "@/components/SpeciesDetailSheet";
@@ -42,7 +46,20 @@ export default function PyramidClient({
   discoveries: Record<string, Discovery>;
   demoPyramidLevel?: number;
 }) {
-  const [eco, setEco] = useState<Ecosystem>("terrestrial");
+  const initialNav = useMemo(() => {
+    const hintedLevel = consumeViewPyramidAfterComplete();
+    let fromUrl: number | null = null;
+    if (typeof window !== "undefined") {
+      const lv = Number(new URLSearchParams(window.location.search).get("lv"));
+      if (Number.isFinite(lv) && lv > 1) fromUrl = lv;
+    }
+    const level = hintedLevel ?? fromUrl ?? demoPyramidLevel;
+    return {
+      level,
+      eco: (level > 1 ? "freshwater" : "terrestrial") as Ecosystem,
+    };
+  }, [demoPyramidLevel]);
+  const [eco, setEco] = useState<Ecosystem>(initialNav.eco);
   const [sel, setSel] = useState<{ s: Species; found: boolean } | null>(null);
   const [help, setHelp] = useState(false);
   const [feeds, setFeeds] = useState<FeedItem[]>([]);
@@ -53,6 +70,7 @@ export default function PyramidClient({
   const [fencedIds, setFencedIds] = useState<Set<string>>(new Set());
   const [fenceMode, setFenceMode] = useState(false);
   const [mounted, setMounted] = useState(false);
+  const [demoSynced, setDemoSynced] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
   const [highlightedId, setHighlightedId] = useState<string | null>(null);
   const [dragFeed, setDragFeed] = useState<FeedItem | null>(null);
@@ -61,8 +79,12 @@ export default function PyramidClient({
   const [dragPos, setDragPos] = useState<{ x: number; y: number } | null>(null);
   const dragRef = useRef<FeedItem | null>(null);
   const pointerStartRef = useRef<{ x: number; y: number } | null>(null);
-  const [demoDiscovered, setDemoDiscovered] = useState<string[]>(discovered);
-  const set = useMemo(() => new Set(demoDiscovered), [demoDiscovered]);
+  const [demoDiscovered, setDemoDiscovered] = useState<string[]>([]);
+  const [pyramidFill, setPyramidFill] = useState<Record<Ecosystem, string[]>>({
+    terrestrial: [],
+    freshwater: [],
+    marine: [],
+  });
   const DRAG_THRESHOLD = 8;
 
   const [invasive, setInvasive] = useState<Record<Ecosystem, boolean>>({
@@ -70,42 +92,64 @@ export default function PyramidClient({
     freshwater: false,
     marine: false,
   });
-  const [level, setLevel] = useState(demoPyramidLevel);
+  const [level, setLevel] = useState(initialNav.level);
   const [pyramidCelebrating, setPyramidCelebrating] = useState(false);
+  const pathname = usePathname();
+  const sessionReadyRef = useRef(false);
 
-  const syncDemo = useCallback(async () => {
-    const demo = await fetchDemoCaptureState();
-    if (demo) {
-      setDemoDiscovered(demo.discovered);
-      setLevel(demo.pyramidLevel);
-    }
-  }, []);
+  /** Filled slots come from server demo script — never from stale game individuals. */
+  const pyramidVisibleIds = useMemo(() => {
+    if (!demoSynced) return new Set<string>();
+    return new Set(pyramidFill[eco] ?? []);
+  }, [demoSynced, eco, pyramidFill]);
 
-  const refreshGame = useCallback(async () => {
-    const state = await fetchGameState();
-    setFeeds(state.feeds);
-    setFoodPw(state.foodPw);
-    setPwMap(state.pwMap);
-    setActiveIds(new Set(state.activeIds));
-    setExtinctIds(new Set(state.extinctIds));
-    setFencedIds(new Set(state.fencedIds));
-    setInvasive(state.invasive);
-    if (state.demoPyramidLevel) setLevel(state.demoPyramidLevel);
-    if (state.pyramidJustCompleted && !consumePyramidCelebrationShown()) {
+  const applySnapshot = useCallback((snapshot: NonNullable<Awaited<ReturnType<typeof fetchDemoStateSnapshot>>>) => {
+    const { game } = snapshot;
+    setDemoDiscovered(snapshot.discovered);
+    setPyramidFill(snapshot.pyramidFill);
+    setLevel(snapshot.pyramidLevel);
+    if (snapshot.pyramidLevel > 1) setEco("freshwater");
+    setFeeds(game.feeds);
+    setFoodPw(game.foodPw);
+    setPwMap(game.pwMap);
+    setActiveIds(new Set(game.activeIds));
+    setExtinctIds(new Set(game.extinctIds));
+    setFencedIds(new Set(game.fencedIds));
+    setInvasive(game.invasive);
+    if (game.pyramidJustCompleted && !consumePyramidCelebrationShown()) {
       setEco("terrestrial");
       setPyramidCelebrating(true);
     }
-    if (state.loginBonus) setToast("🎁 ログインボーナス：みんなの生命力 +1pw！");
+    if (game.loginBonus) setToast("🎁 ログインボーナス：みんなの生命力 +1pw！");
   }, []);
 
+  const syncAll = useCallback(async () => {
+    const snapshot = await fetchDemoStateSnapshot();
+    if (snapshot) applySnapshot(snapshot);
+    return snapshot;
+  }, [applySnapshot]);
+
   useEffect(() => {
+    if (pathname !== "/pyramid") return;
+    let cancelled = false;
+    setDemoSynced(false);
+    setMounted(false);
     async function init() {
-      await syncDemo();
-      await refreshGame();
-      setMounted(true);
+      if (!sessionReadyRef.current) {
+        await ensureDemoSessionReady();
+        sessionReadyRef.current = true;
+      }
+      await syncAll();
+      if (!cancelled) {
+        setMounted(true);
+        setDemoSynced(true);
+      }
     }
     void init();
-  }, [refreshGame, syncDemo, userId]);
+    return () => {
+      cancelled = true;
+    };
+  }, [pathname, syncAll]);
 
   useEffect(() => {
     if (!toast) return;
@@ -114,9 +158,7 @@ export default function PyramidClient({
   }, [toast]);
 
   const total = totals[eco] ?? 0;
-  const found = mounted
-    ? [...activeIds].filter((id) => id.startsWith(eco[0] + "-")).length
-    : demoDiscovered.filter((id) => id.startsWith(eco[0] + "-")).length;
+  const found = demoSynced ? pyramidVisibleIds.size : 0;
   const invasiveThreat = mounted && invasive[eco];
   // Food is generic — every feed can go to any creature, regardless of tab.
   const ecoFeeds = mounted ? feeds : [];
@@ -159,10 +201,12 @@ export default function PyramidClient({
     setHighlightedId(s.id);
   }
 
+  const discoveredSet = useMemo(() => new Set(demoDiscovered), [demoDiscovered]);
+
   const feedTargetSet = useMemo(() => {
     if (!mounted || activeIds.size === 0) return new Set<string>();
-    return new Set([...activeIds].filter((id) => set.has(id)));
-  }, [mounted, activeIds, set]);
+    return new Set([...activeIds].filter((id) => discoveredSet.has(id)));
+  }, [mounted, activeIds, discoveredSet]);
 
   const feedDropTargets = useMemo(() => {
     if (!selectedFood && !dragFeed) return undefined;
@@ -207,7 +251,7 @@ export default function PyramidClient({
     } else {
       setToast(`${result.predatorName} +${result.gained}pw（残り餌 ${result.foodPw}pw）`);
     }
-    await refreshGame();
+    await syncAll();
   }
 
   async function placeFenceOn(speciesId: string) {
@@ -217,7 +261,7 @@ export default function PyramidClient({
       return;
     }
     setToast("🛡 保護柵を設置！在来種への影響がやわらぎます（-1 B-mile）");
-    refreshGame();
+    void syncAll();
   }
 
   function startNativeFeedDrag(feed: FeedItem, e: React.DragEvent<HTMLElement>) {
@@ -359,20 +403,22 @@ export default function PyramidClient({
             <p className="mb-3 mx-1 text-xs text-sky-700 font-semibold text-center">赤枠の外来種をタップして隔離しよう</p>
           )}
 
-          {pyramidCelebrating && eco === "terrestrial" ? (
+          {!demoSynced ? (
+            <div className="py-16 text-center text-sm text-neutral-400">ピラミッドを読み込み中…</div>
+          ) : pyramidCelebrating && eco === "terrestrial" ? (
             <PyramidCelebrationDeck
               onComplete={() => {
                 setPyramidCelebrating(false);
-                void syncDemo();
-                void refreshGame();
+                setEco("freshwater");
+                void syncAll();
                 setToast("🎉 ピラミッド完成！+30 B-mile と経験値を獲得");
               }}
             />
           ) : (
             <Pyramid
               ecosystem={eco}
-              discovered={set}
-              activeIds={mounted ? activeIds : undefined}
+              discovered={pyramidVisibleIds}
+              activeIds={pyramidVisibleIds}
               extinctIds={mounted ? extinctIds : undefined}
               fencedIds={mounted ? fencedIds : undefined}
               pwMap={mounted ? pwMap : undefined}
