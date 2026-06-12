@@ -1,4 +1,3 @@
-import { isPageReload } from "@/lib/isPageReload";
 import type { DiaryEntry, Ecosystem, FeedItem, UserProfile } from "@/lib/types";
 import type { PyramidEcoSummary } from "@/lib/pyramidSummary";
 import type { UserStats } from "@/lib/game";
@@ -58,24 +57,30 @@ export async function resetDemoFlow(): Promise<void> {
   await fetch("/api/demo/reset", { method: "POST", cache: "no-store" });
 }
 
-declare global {
-  interface Window {
-    __btgoDemoResetDone?: boolean;
-  }
-}
-
 /**
- * Reset demo once per full page load (F5).
- * `isPageReload()` stays true for the whole tab session after F5, so we must NOT
- * reset on every client navigation / component mount.
+ * Reset the scripted demo exactly once per full document load.
+ *
+ * This module is evaluated fresh on every real page load — first visit, F5, or
+ * any browser reload — so `demoSessionReset` starts as `null` each time and the
+ * demo restarts (requirement: "restart on F5/reload"). Client-side (SPA)
+ * navigation and photo captures reuse the same loaded module, so the memoized
+ * promise is returned without resetting — the pyramid keeps its state and the
+ * initial nine entities never reappear mid-session.
+ *
+ * All callers await the SAME promise, so concurrent mounts trigger one reset.
  */
-export async function ensureDemoSessionReady(): Promise<void> {
-  if (!isPageReload()) return;
-  if (typeof window !== "undefined") {
-    if (window.__btgoDemoResetDone) return;
-    window.__btgoDemoResetDone = true;
+let demoSessionReset: Promise<void> | null = null;
+
+export function ensureDemoSessionReady(): Promise<void> {
+  if (!demoSessionReset) {
+    // Clear the memo if the reset fails so a later mount can retry instead of
+    // being permanently blocked by a cached rejection.
+    demoSessionReset = resetDemoFlow().catch((e) => {
+      demoSessionReset = null;
+      throw e;
+    });
   }
-  await resetDemoFlow();
+  return demoSessionReset;
 }
 
 export type DemoCaptureState = {

@@ -58,27 +58,24 @@ export function getPyramidFilledIds(ecosystem: Ecosystem): string[] {
   const mem = getMemory();
   const prefix = ecosystem === "terrestrial" ? "t-" : ecosystem === "freshwater" ? "f-" : "m-";
 
+  // Terrestrial pyramid is "flipped" into an empty deck once completed (round > 1).
   if (ecosystem === "terrestrial" && mem.terrestrialRound > 1) {
     return [];
   }
 
   const filled = new Set<string>();
 
-  if (mem.terrestrialRound === 1) {
-    for (const { speciesId } of DEMO_INITIAL_INDIVIDUALS) {
-      if (speciesId.startsWith(prefix)) filled.add(speciesId);
-    }
-  } else {
-    for (const { speciesId } of DEMO_INITIAL_INDIVIDUALS) {
-      if (speciesId.startsWith("f-")) filled.add(speciesId);
-    }
+  // Pre-discovered initial individuals that belong to THIS ecosystem only.
+  // (The 9 terrestrial entities on round 1; the lone pre-discovered freshwater
+  // heron stays on the freshwater pyramid across rounds.)
+  for (const { speciesId } of DEMO_INITIAL_INDIVIDUALS) {
+    if (speciesId.startsWith(prefix)) filled.add(speciesId);
   }
 
   for (let i = 0; i < mem.captureStep; i++) {
     const cap = DEMO_CAPTURE_SCRIPT[i];
     if (cap.kind !== "new_species") continue;
     if (!cap.speciesId.startsWith(prefix)) continue;
-    if (ecosystem === "terrestrial" && mem.terrestrialRound > 1) continue;
     filled.add(cap.speciesId);
   }
 
