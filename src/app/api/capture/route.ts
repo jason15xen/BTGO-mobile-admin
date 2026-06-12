@@ -50,18 +50,30 @@ export async function GET() {
 export async function POST(req: Request) {
   try {
     const user = getGuestProfile();
-    const { speciesId } = await req.json();
+    // The photo payload is accepted but not authoritative: the demo sequence is
+    // server-driven, so any capture simply advances to the next scripted step.
+    // There is no enforced order and no "wrong species" rejection.
+    await req.json().catch(() => ({}));
+
+    const next = getNextScriptedCapture();
+    if (!next) {
+      // Demo already finished — every pyramid slot is filled.
+      return NextResponse.json({
+        done: true,
+        myDiscovered: getDemoDiscoveredIds(),
+        userId: user.id,
+        demo: {
+          pyramidLevel: getDemoPyramidLevel(),
+          captureStep: getDemoCaptureStep(),
+          nextCapture: null,
+        },
+      });
+    }
+
+    const speciesId = next.speciesId;
     const species = SPECIES_BY_ID[speciesId];
     if (!species) {
       return NextResponse.json({ error: "unknown species" }, { status: 400 });
-    }
-
-    const next = getNextScriptedCapture();
-    if (!next || next.speciesId !== speciesId) {
-      return NextResponse.json(
-        { error: "demo_script_mismatch", expected: next?.speciesId ?? null },
-        { status: 400 },
-      );
     }
 
     const spot = SPOTS[Math.floor(Math.random() * SPOTS.length)];
@@ -95,10 +107,7 @@ export async function POST(req: Request) {
       { feedOnly },
     );
 
-    const advance = advanceDemoCapture(next);
-    if (!advance.ok) {
-      return NextResponse.json({ error: "demo_advance_failed" }, { status: 400 });
-    }
+    advanceDemoCapture();
 
     let reward = rewardForCapture(species, isNewOnPyramid);
     if (pyramidComplete) {
@@ -111,6 +120,7 @@ export async function POST(req: Request) {
     return NextResponse.json({
       observation,
       reward,
+      recognizedSpeciesId: speciesId,
       isNewSpecies: isNewOnPyramid,
       alreadyDiscovered,
       myDiscovered: getDemoDiscoveredIds(),

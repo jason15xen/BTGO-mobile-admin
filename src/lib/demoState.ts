@@ -95,11 +95,15 @@ export function getDemoActiveSpeciesIds(): string[] {
   return getDemoDiscoveredIds();
 }
 
-export function advanceDemoCapture(entry: DemoCaptureEntry) {
+/**
+ * Advance to the next demo step. Server-authoritative: there is no enforced
+ * capture order, so any photo simply consumes the current scripted step.
+ * Idempotent at the end of the script (won't run past the last step).
+ */
+export function advanceDemoCapture() {
   const mem = getMemory();
-  const expected = getNextScriptedCapture();
-  if (!expected || expected.speciesId !== entry.speciesId || expected.kind !== entry.kind) {
-    return { ok: false as const, reason: "unexpected_capture" as const };
+  if (mem.captureStep >= DEMO_CAPTURE_SCRIPT.length) {
+    return { ok: false as const, step: mem.captureStep };
   }
   mem.captureStep++;
   return { ok: true as const, step: mem.captureStep };

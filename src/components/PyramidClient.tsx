@@ -103,12 +103,18 @@ export default function PyramidClient({
     return new Set(pyramidFill[eco] ?? []);
   }, [demoSynced, eco, pyramidFill]);
 
-  const applySnapshot = useCallback((snapshot: NonNullable<Awaited<ReturnType<typeof fetchDemoStateSnapshot>>>) => {
+  const applySnapshot = useCallback((
+    snapshot: NonNullable<Awaited<ReturnType<typeof fetchDemoStateSnapshot>>>,
+    opts?: { initial?: boolean },
+  ) => {
     const { game } = snapshot;
     setDemoDiscovered(snapshot.discovered);
     setPyramidFill(snapshot.pyramidFill);
     setLevel(snapshot.pyramidLevel);
-    if (snapshot.pyramidLevel > 1) setEco("freshwater");
+    // On the first sync after mount, open the tab matching the current round:
+    // the land pyramid on round 1 (incl. after an F5 restart), freshwater once it
+    // has flipped. Later syncs (feeding etc.) leave the user's chosen tab alone.
+    if (opts?.initial) setEco(snapshot.pyramidLevel > 1 ? "freshwater" : "terrestrial");
     setFeeds(game.feeds);
     setFoodPw(game.foodPw);
     setPwMap(game.pwMap);
@@ -123,9 +129,9 @@ export default function PyramidClient({
     if (game.loginBonus) setToast("🎁 ログインボーナス：みんなの生命力 +1pw！");
   }, []);
 
-  const syncAll = useCallback(async () => {
+  const syncAll = useCallback(async (opts?: { initial?: boolean }) => {
     const snapshot = await fetchDemoStateSnapshot();
-    if (snapshot) applySnapshot(snapshot);
+    if (snapshot) applySnapshot(snapshot, opts);
     return snapshot;
   }, [applySnapshot]);
 
@@ -139,7 +145,7 @@ export default function PyramidClient({
         await ensureDemoSessionReady();
         sessionReadyRef.current = true;
       }
-      await syncAll();
+      await syncAll({ initial: true });
       if (!cancelled) {
         setMounted(true);
         setDemoSynced(true);

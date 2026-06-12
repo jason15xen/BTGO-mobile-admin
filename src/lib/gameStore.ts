@@ -144,7 +144,7 @@ export function completeCapture(
   }
 
   let pyramidComplete = false;
-  if (!feedOnly && isTerrestrialPyramidComplete()) {
+  if (!feedOnly && captureCompletesTerrestrial(speciesId)) {
     markTerrestrialPyramidCompleted();
     mem.individuals = mem.individuals.filter(
       (i) => SPECIES_BY_ID[i.speciesId]?.ecosystem !== "terrestrial",
@@ -161,11 +161,22 @@ export function completeCapture(
   };
 }
 
-function isTerrestrialPyramidComplete(): boolean {
+const TERRESTRIAL_SLOT_IDS = new Set(terrestrialPyramidSpecies().map((s) => s.id));
+const INITIAL_TERRESTRIAL_IDS = new Set(
+  DEMO_INITIAL_INDIVIDUALS.filter((i) => i.speciesId.startsWith("t-")).map((i) => i.speciesId),
+);
+
+/**
+ * Deterministic completion: the 9 terrestrial slots are pre-filled, so capturing
+ * the remaining terrestrial slot (the hawk) at round 1 completes the pyramid.
+ * Independent of decayed game individuals, so completion is never missed.
+ */
+function captureCompletesTerrestrial(speciesId: string): boolean {
   if (getTerrestrialRound() !== 1) return false;
-  const slots = terrestrialPyramidSpecies().map((s) => s.id);
-  const active = activeSpeciesIds(decayedIndividuals());
-  return slots.every((id) => active.has(id));
+  if (!TERRESTRIAL_SLOT_IDS.has(speciesId)) return false;
+  const filled = new Set(INITIAL_TERRESTRIAL_IDS);
+  filled.add(speciesId);
+  return [...TERRESTRIAL_SLOT_IDS].every((id) => filled.has(id));
 }
 
 const INITIAL_PW_MAP = new Map(DEMO_INITIAL_INDIVIDUALS.map((i) => [i.speciesId, i.pw]));

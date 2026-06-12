@@ -163,22 +163,17 @@ export default function CaptureClient() {
         const next = Math.min(p + 7, 100);
         if (next >= 100) {
           clearInterval(iv);
-          const scripted = scriptedSpeciesId ? SPECIES_BY_ID[scriptedSpeciesId] : undefined;
-          if (demoMode) {
-            if (scripted) {
-              setSubject(scripted);
-              setPhase("result");
-            }
-          } else {
-            setSubject(scripted ?? randomSpecies());
-            setPhase("result");
-          }
+          // Preview the next scripted slot (server decides the real species on
+          // register). Falls back to a random creature once the demo is done.
+          const predicted = scriptedSpeciesId ? SPECIES_BY_ID[scriptedSpeciesId] : undefined;
+          setSubject(predicted ?? randomSpecies());
+          setPhase("result");
         }
         return next;
       });
     }, 80);
     return () => clearInterval(iv);
-  }, [phase, scriptedSpeciesId, demoMode]);
+  }, [phase, scriptedSpeciesId]);
 
   function takeFrame() {
     const video = videoRef.current;
@@ -215,7 +210,6 @@ export default function CaptureClient() {
   async function register() {
     if (!subject) return;
     setPhase("saving");
-    const guessedNew = !discovered.has(subject.id);
     try {
       const res = await fetch("/api/capture", {
         method: "POST",
@@ -223,21 +217,20 @@ export default function CaptureClient() {
         body: JSON.stringify({ speciesId: subject.id, photoData: shot ?? undefined }),
       });
       const data = await res.json().catch(() => ({}));
-      if (!res.ok) {
-        const expected = data.expected ? SPECIES_BY_ID[data.expected as string]?.nameJa ?? data.expected : null;
-        alert(
-          expected
-            ? `デモの順番がずれています。次は「${expected}」を撮影してください。`
-            : "登録に失敗しました。もう一度お試しください。",
-        );
+      // No order enforcement: only a genuine error or a finished demo lands here.
+      if (!res.ok || data.done) {
         await syncDemoFromServer();
         setPhase("camera");
         return;
       }
-      const rw = data.reward ?? rewardForCapture(subject, guessedNew);
-      const uid = data.userId ?? userId;
-      setUserId(uid);
-      setReward(rw);
+      // The server is authoritative about which creature was recognized.
+      const recognized = data.recognizedSpeciesId
+        ? SPECIES_BY_ID[data.recognizedSpeciesId as string] ?? subject
+        : subject;
+      setSubject(recognized);
+      const guessedNew = !discovered.has(recognized.id);
+      setUserId(data.userId ?? userId);
+      setReward(data.reward ?? rewardForCapture(recognized, guessedNew));
       setIsNew(data.isNewSpecies ?? guessedNew);
       setFeedGain(data.feed?.pwValue ?? null);
       setFeedOnly(Boolean(data.feedOnly));
@@ -245,12 +238,11 @@ export default function CaptureClient() {
       setPyramidComplete(Boolean(data.pyramidComplete));
       if (data.pyramidComplete) markPyramidCelebrationShown();
       if (data.demoPyramidLevel) setDemoPyramidLevel(data.demoPyramidLevel);
-      setDiscovered(new Set<string>(data.myDiscovered ?? [...discovered, subject.id]));
+      setDiscovered(new Set<string>(data.myDiscovered ?? [...discovered, recognized.id]));
       setScriptedSpeciesId(data.demo?.nextCapture?.speciesId ?? null);
       setDemoMode(Boolean(data.demo?.nextCapture));
       setPhase("reflection");
     } catch {
-      alert("登録に失敗しました。もう一度お試しください。");
       setPhase("result");
     }
   }
@@ -296,9 +288,7 @@ export default function CaptureClient() {
             <>
               <div className="absolute inset-8 border-2 border-white/70 rounded-2xl pointer-events-none" />
               <div className="absolute top-5 left-1/2 -translate-x-1/2 text-xs bg-black/40 rounded-full px-3 py-1">
-                {scriptedSpeciesId
-                  ? `デモ撮影：${SPECIES_BY_ID[scriptedSpeciesId]?.nameJa ?? "いきもの"}`
-                  : "いきものを枠に合わせてシャッターを押そう"}
+                いきものを枠に合わせてシャッターを押そう
               </div>
               {!camReady && (
                 <div className="absolute inset-0 flex items-center justify-center text-white/70 text-sm">
