@@ -1,46 +1,59 @@
 import "server-only";
 import { randomUUID } from "node:crypto";
 import { DEMO_B_MILE_BALANCE, DEMO_USER } from "@/lib/game";
+import { createServerMemory } from "@/lib/serverMemory";
 import type { UserProfile } from "@/lib/types";
 import type { OwnedCoupon } from "@/lib/wallet";
 
 const DEFAULT_AVATAR = "🌿";
 
-let profileOverrides: Partial<Pick<UserProfile, "name" | "avatar">> = {};
-let balance = DEMO_B_MILE_BALANCE;
-let coupons: OwnedCoupon[] = [];
+type GuestMemory = {
+  profileOverrides: Partial<Pick<UserProfile, "name" | "avatar">>;
+  balance: number;
+  coupons: OwnedCoupon[];
+};
+
+const getMemory = createServerMemory<GuestMemory>("__btgoGuestStore", () => ({
+  profileOverrides: {},
+  balance: DEMO_B_MILE_BALANCE,
+  coupons: [],
+}));
 
 export function getGuestProfile(): UserProfile {
+  const mem = getMemory();
   return {
     id: DEMO_USER.id,
     email: "",
-    name: profileOverrides.name ?? DEMO_USER.name,
-    avatar: profileOverrides.avatar ?? DEFAULT_AVATAR,
+    name: mem.profileOverrides.name ?? DEMO_USER.name,
+    avatar: mem.profileOverrides.avatar ?? DEFAULT_AVATAR,
   };
 }
 
 export function updateGuestProfile(
   patch: Partial<Pick<UserProfile, "name" | "avatar">>,
 ): UserProfile {
-  if (patch.name !== undefined) profileOverrides.name = patch.name;
-  if (patch.avatar !== undefined) profileOverrides.avatar = patch.avatar;
+  const mem = getMemory();
+  if (patch.name !== undefined) mem.profileOverrides.name = patch.name;
+  if (patch.avatar !== undefined) mem.profileOverrides.avatar = patch.avatar;
   return getGuestProfile();
 }
 
 export function getGuestWallet() {
-  return { balance, coupons: [...coupons] };
+  const mem = getMemory();
+  return { balance: mem.balance, coupons: [...mem.coupons] };
 }
 
 export function grantGuestBMile(amount: number): number {
-  balance += amount;
-  return balance;
+  const mem = getMemory();
+  mem.balance += amount;
+  return mem.balance;
 }
 
-/** Spend B-mile (e.g. 保護柵 = 1 B-mile). Returns the new balance, or null if insufficient. */
 export function spendGuestBMile(cost: number): number | null {
-  if (cost < 0 || balance < cost) return null;
-  balance -= cost;
-  return balance;
+  const mem = getMemory();
+  if (cost < 0 || mem.balance < cost) return null;
+  mem.balance -= cost;
+  return mem.balance;
 }
 
 export function purchaseGuestCoupon(input: {
@@ -50,10 +63,11 @@ export function purchaseGuestCoupon(input: {
 }):
   | { ok: true; balance: number; coupon: OwnedCoupon }
   | { ok: false; error: string } {
-  if (balance < input.cost) {
+  const mem = getMemory();
+  if (mem.balance < input.cost) {
     return { ok: false, error: "insufficient_balance" };
   }
-  balance -= input.cost;
+  mem.balance -= input.cost;
   const coupon: OwnedCoupon = {
     id: randomUUID(),
     storeName: input.storeName,
@@ -61,6 +75,6 @@ export function purchaseGuestCoupon(input: {
     cost: input.cost,
     purchasedAt: new Date().toISOString(),
   };
-  coupons.unshift(coupon);
-  return { ok: true, balance, coupon };
+  mem.coupons.unshift(coupon);
+  return { ok: true, balance: mem.balance, coupon };
 }

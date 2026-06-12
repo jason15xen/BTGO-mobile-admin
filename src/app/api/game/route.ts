@@ -6,7 +6,9 @@ export const dynamic = "force-dynamic";
 
 export async function GET() {
   try {
-    return NextResponse.json(getGameState([]));
+    return NextResponse.json(getGameState([]), {
+      headers: { "Cache-Control": "no-store" },
+    });
   } catch (e) {
     return NextResponse.json(
       {

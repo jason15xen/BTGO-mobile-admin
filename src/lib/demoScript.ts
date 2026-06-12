@@ -25,6 +25,12 @@ export function terrestrialPyramidSpecies(): Species[] {
   return pyramidSpeciesForEco("terrestrial");
 }
 
+/** All 10 terrestrial pyramid slot IDs (for completion celebration). */
+export const TERRESTRIAL_PYRAMID_IDS = terrestrialPyramidSpecies().map((s) => s.id);
+
+export const PYRAMID_CELEBRATION_HOLD_MS = 5000;
+export const PYRAMID_DECK_FLIP_MS = 1350;
+
 /** 9 terrestrial + 1 pre-discovered freshwater (アオサギ). */
 export const DEMO_INITIAL_INDIVIDUALS: { speciesId: string; pw: number }[] = [
   { speciesId: "t-kingfisher", pw: 10 },
@@ -34,8 +40,8 @@ export const DEMO_INITIAL_INDIVIDUALS: { speciesId: string; pw: number }[] = [
   { speciesId: "t-bee", pw: 5 },
   { speciesId: "t-sakura", pw: 120 },
   { speciesId: "t-fern", pw: 7 },
-  { speciesId: "t-bamboo", pw: 4 },
-  { speciesId: "t-grass", pw: 3 },
+  { speciesId: "t-bamboo", pw: 2 },
+  { speciesId: "t-grass", pw: 2 },
   { speciesId: "f-heron", pw: 8 },
 ];
 

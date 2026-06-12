@@ -105,10 +105,7 @@ export async function POST(req: Request) {
       reward = { ...PYRAMID_COMPLETE_REWARD };
       grantGuestBMile(PYRAMID_COMPLETE_REWARD.points);
     } else if (feedOnly) {
-      reward = {
-        xp: Math.max(40, Math.round(reward.xp * 0.25)),
-        points: Math.max(10, Math.round(reward.points * 0.3)),
-      };
+      reward = { xp: 0, points: 0 };
     }
 
     return NextResponse.json({

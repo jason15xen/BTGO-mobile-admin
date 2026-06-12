@@ -14,23 +14,28 @@ import {
 } from "@/lib/demoState";
 import { terrestrialPyramidSpecies } from "@/lib/demoScript";
 import { DEMO_USER } from "@/lib/game";
+import { createServerMemory } from "@/lib/serverMemory";
 import type { Ecosystem, FeedItem, Individual, Species } from "@/lib/types";
 
 const USER_ID = DEMO_USER.id;
-
-// Demo starting food pool (PW). Spending food on a creature deducts from this;
-// capturing refills it.
 const DEMO_FOOD_PW = 200;
-
-let individuals: Individual[] = [];
-let feeds: FeedItem[] = [];
-let foodPw = DEMO_FOOD_PW;
-/** Invasive species that have been isolated with a protection fence (保護柵). */
-const fencedIds = new Set<string>();
-/** Daily login bonus — applied once per calendar day. */
-let lastLoginBonusDay: string | null = null;
-
 const MS_PER_DAY = 24 * 60 * 60 * 1000;
+
+type GameMemory = {
+  individuals: Individual[];
+  feeds: FeedItem[];
+  foodPw: number;
+  fencedIds: Set<string>;
+  lastLoginBonusDay: string | null;
+};
+
+const getMemory = createServerMemory<GameMemory>("__btgoGameStore", () => ({
+  individuals: [],
+  feeds: [],
+  foodPw: DEMO_FOOD_PW,
+  fencedIds: new Set<string>(),
+  lastLoginBonusDay: null,
+}));
 
 /**
  * Decay rules (spec §3 / §4.1):
@@ -39,19 +44,19 @@ const MS_PER_DAY = 24 * 60 * 60 * 1000;
  * - natives sharing a trophic level with an active UNFENCED invasive: extra -0.1pw / 24h
  */
 function decayedIndividuals(): Individual[] {
+  const mem = getMemory();
   const now = Date.now();
-  // levels threatened by an unfenced, alive invasive (per ecosystem+level)
   const threat = new Set(
-    individuals
-      .filter((i) => i.pw > 0 && !fencedIds.has(i.speciesId) && SPECIES_BY_ID[i.speciesId]?.invasive)
+    mem.individuals
+      .filter((i) => i.pw > 0 && !mem.fencedIds.has(i.speciesId) && SPECIES_BY_ID[i.speciesId]?.invasive)
       .map((i) => {
         const sp = SPECIES_BY_ID[i.speciesId];
         return sp ? `${sp.ecosystem}:${sp.trophicLevel}` : "";
       }),
   );
-  return individuals.map((ind) => {
+  return mem.individuals.map((ind) => {
     const sp = SPECIES_BY_ID[ind.speciesId];
-    if (!sp || sp.trophicLevel === 1) return ind; // producers don't starve
+    if (!sp || sp.trophicLevel === 1) return ind;
     const last = new Date(ind.lastDecayAt).getTime();
     const days = Math.floor((now - last) / MS_PER_DAY);
     if (days <= 0) return ind;
@@ -62,7 +67,7 @@ function decayedIndividuals(): Individual[] {
 }
 
 function persistIndividuals(next: Individual[]) {
-  individuals = next;
+  getMemory().individuals = next;
 }
 
 function latestPwBySpecies(list: Individual[]): Record<string, number> {
@@ -116,6 +121,8 @@ export function completeCapture(
   pyramidComplete: boolean;
   newPyramidLevel: number;
 } {
+  ensureDemoIndividuals();
+  const mem = getMemory();
   const species = SPECIES_BY_ID[speciesId];
   if (!species) throw new Error("unknown_species");
 
@@ -129,7 +136,7 @@ export function completeCapture(
     pwValue,
     createdAt: new Date().toISOString(),
   };
-  foodPw += pwValue;
+  mem.foodPw += pwValue;
 
   const feedOnly = options?.feedOnly ?? false;
   if (!feedOnly) {
@@ -139,7 +146,7 @@ export function completeCapture(
   let pyramidComplete = false;
   if (!feedOnly && isTerrestrialPyramidComplete()) {
     markTerrestrialPyramidCompleted();
-    individuals = individuals.filter(
+    mem.individuals = mem.individuals.filter(
       (i) => SPECIES_BY_ID[i.speciesId]?.ecosystem !== "terrestrial",
     );
     pyramidComplete = true;
@@ -162,10 +169,11 @@ function isTerrestrialPyramidComplete(): boolean {
 }
 
 function ensureDemoIndividuals() {
-  if (individuals.length > 0) return;
+  const mem = getMemory();
+  if (mem.individuals.length > 0) return;
   if (!shouldSeedInitialPyramid()) return;
   const now = new Date().toISOString();
-  individuals = getDemoInitialIndividuals().map(({ speciesId, pw }) => ({
+  mem.individuals = getDemoInitialIndividuals().map(({ speciesId, pw }) => ({
     id: randomUUID(),
     speciesId,
     userId: USER_ID,
@@ -173,15 +181,18 @@ function ensureDemoIndividuals() {
     createdAt: now,
     lastDecayAt: now,
   }));
+  // Keep seeded pw as-is on first load (e.g. ground-tier 2pw individuals stay at 2).
+  mem.lastLoginBonusDay = now.slice(0, 10);
 }
 
 /** Fixed, reusable food set — one card per size (1 / 3 / 9 pw). */
 function ensureFeedsForDiscovered(_discovered: string[]) {
-  if (feeds.some((f) => f.userId === USER_ID)) return;
+  const mem = getMemory();
+  if (mem.feeds.some((f) => f.userId === USER_ID)) return;
   const now = new Date().toISOString();
   for (const pwValue of FOOD_VALUES) {
-    feeds.push({
-      id: `feed-${USER_ID}-${pwValue}`, // stable id so the card is always valid
+    mem.feeds.push({
+      id: `feed-${USER_ID}-${pwValue}`,
       userId: USER_ID,
       sourceSpeciesId: "",
       ecosystem: "terrestrial",
@@ -193,15 +204,15 @@ function ensureFeedsForDiscovered(_discovered: string[]) {
 }
 
 export function getGameState(_discovered: string[]) {
+  const mem = getMemory();
   ensureDemoIndividuals();
   ensureFeedsForDiscovered([]);
   let list = decayedIndividuals().filter((i) => i.userId === USER_ID);
 
-  // Daily login bonus: +1pw to every living creature, once a day.
   const today = new Date().toISOString().slice(0, 10);
   let loginBonus = false;
-  if (lastLoginBonusDay !== today) {
-    lastLoginBonusDay = today;
+  if (mem.lastLoginBonusDay !== today) {
+    mem.lastLoginBonusDay = today;
     loginBonus = true;
     list = list.map((i) => (i.pw > 0 ? { ...i, pw: i.pw + 1 } : i));
   }
@@ -211,7 +222,6 @@ export function getGameState(_discovered: string[]) {
   const pyramidJustCompleted = consumePyramidJustCompleted();
   const pwMap = latestPwBySpecies(list);
   const activeIds = activeSpeciesIds(list);
-  // Extinct: discovered creatures whose individual starved to 0 (kept, grayed out).
   const extinctIds = list.filter((i) => i.pw <= 0 && discoveredSet.has(i.speciesId)).map((i) => i.speciesId);
 
   const invasive: Record<Ecosystem, boolean> = {
@@ -233,12 +243,12 @@ export function getGameState(_discovered: string[]) {
   };
 
   return {
-    feeds: feeds.filter((f) => f.userId === USER_ID),
-    foodPw,
+    feeds: mem.feeds.filter((f) => f.userId === USER_ID),
+    foodPw: mem.foodPw,
     pwMap,
     activeIds: [...activeIds],
     extinctIds,
-    fencedIds: [...fencedIds],
+    fencedIds: [...mem.fencedIds],
     loginBonus,
     invasive,
     demoPyramidLevel: getDemoPyramidLevel(),
@@ -246,12 +256,12 @@ export function getGameState(_discovered: string[]) {
   };
 }
 
-/** Place a protection fence (保護柵) around an invasive species. */
 export function placeFence(speciesId: string): "ok" | "not-invasive" | "already" {
+  const mem = getMemory();
   const sp = SPECIES_BY_ID[speciesId];
   if (!sp?.invasive) return "not-invasive";
-  if (fencedIds.has(speciesId)) return "already";
-  fencedIds.add(speciesId);
+  if (mem.fencedIds.has(speciesId)) return "already";
+  mem.fencedIds.add(speciesId);
   return "ok";
 }
 
@@ -263,11 +273,11 @@ function applyFeedToSpecies(
   targetSpeciesId: string,
   discovered: Set<string>,
 ): FeedOk | FeedFail {
+  const mem = getMemory();
   const predators = validPredatorsForFeed(feed, discovered);
   if (predators.length === 0) return "no-predator";
   if (!predators.some((p) => p.id === targetSpeciesId)) return "invalid-target";
-  // Not enough food in the pool to spend this card.
-  if (foodPw < feed.pwValue) return "no-food";
+  if (mem.foodPw < feed.pwValue) return "no-food";
 
   let list = decayedIndividuals().filter((i) => i.userId === USER_ID);
   let target = list.find((i) => i.speciesId === targetSpeciesId && i.pw > 0);
@@ -285,7 +295,6 @@ function applyFeedToSpecies(
     list = [...list, target];
   }
 
-  // Weak creature (pw < 3): feeding grants a +1 recovery bonus (ほっぺピンク♪).
   const recovered = target.pw > 0 && target.pw < PW_WEAK_THRESHOLD;
   const bonus = recovered ? 1 : 0;
   const newPw = target.pw + feed.pwValue + bonus;
@@ -293,15 +302,14 @@ function applyFeedToSpecies(
   persistIndividuals(
     list.map((i) => (i.id === target!.id ? { ...i, pw: newPw } : i)),
   );
-  // Spending the food deducts its full value from the pool.
-  foodPw = Math.max(0, foodPw - feed.pwValue);
+  mem.foodPw = Math.max(0, mem.foodPw - feed.pwValue);
 
   const predator = SPECIES_BY_ID[target.speciesId];
   return {
     predatorName: predator?.nameJa ?? "生き物",
     gained,
     newPw,
-    foodPw,
+    foodPw: mem.foodPw,
     recovered,
   };
 }
@@ -311,13 +319,13 @@ export function feedToTarget(
   targetSpeciesId: string,
   discovered: Set<string>,
 ): FeedOk | FeedFail | null {
-  ensureFeedsForDiscovered([]); // make sure the denomination cards exist
-  const feed = feeds.find((f) => f.id === feedId && f.userId === USER_ID);
+  ensureFeedsForDiscovered([]);
+  const mem = getMemory();
+  const feed = mem.feeds.find((f) => f.id === feedId && f.userId === USER_ID);
   if (!feed) return null;
   return applyFeedToSpecies(feed, targetSpeciesId, discovered);
 }
 
-/** Species scheduled for each pyramid slot (fixed order per ecosystem). */
 export function scheduledSpeciesForEco(ecosystem: Ecosystem): Species[] {
   return SPECIES.filter((s) => s.ecosystem === ecosystem);
 }

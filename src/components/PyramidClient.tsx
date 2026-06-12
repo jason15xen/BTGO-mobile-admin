@@ -1,15 +1,16 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { LuLightbulb, LuX, LuInfo, LuUtensils, LuPartyPopper } from "react-icons/lu";
+import { LuLightbulb, LuX, LuInfo, LuUtensils } from "react-icons/lu";
 import { slotHintFor } from "@/lib/slotHint";
 import Pyramid from "@/components/Pyramid";
+import PyramidCelebrationDeck, { consumePyramidCelebrationShown } from "@/components/PyramidCelebrationDeck";
 import { ECOSYSTEM_LABEL } from "@/data/species";
 import { SPECIES_INFO } from "@/data/speciesInfo";
 import { ECO_THEME } from "@/lib/theme";
-import { fetchGameState, postFeed, postFence } from "@/lib/gameApi";
+import { fetchDemoCaptureState, fetchGameState, postFeed, postFence } from "@/lib/gameApi";
 import type { Ecosystem, FeedItem } from "@/lib/types";
-import { PageHero, Screen, Card, ProgressBar } from "@/components/ui";
+import { PageHero, Screen, Card } from "@/components/ui";
 import SpeciesDetailSheet from "@/components/SpeciesDetailSheet";
 import type { Discovery } from "@/lib/game";
 import type { Species } from "@/lib/types";
@@ -21,12 +22,6 @@ const ACTIVE_TAB_BG: Record<Ecosystem, string> = {
   freshwater: "bg-teal-100",
   marine: "bg-lime-100",
 };
-
-const ECO_PROGRESS_TONE = {
-  terrestrial: "forest",
-  freshwater: "teal",
-  marine: "lime",
-} as const;
 
 const ECO_HINT: Record<Ecosystem, { season: string; time: string; region: string }> = {
   terrestrial: { season: "春〜秋が活発", time: "朝・夕方", region: "山麓・里山方面" },
@@ -66,7 +61,8 @@ export default function PyramidClient({
   const [dragPos, setDragPos] = useState<{ x: number; y: number } | null>(null);
   const dragRef = useRef<FeedItem | null>(null);
   const pointerStartRef = useRef<{ x: number; y: number } | null>(null);
-  const set = useMemo(() => new Set(discovered), [discovered]);
+  const [demoDiscovered, setDemoDiscovered] = useState<string[]>(discovered);
+  const set = useMemo(() => new Set(demoDiscovered), [demoDiscovered]);
   const DRAG_THRESHOLD = 8;
 
   const [invasive, setInvasive] = useState<Record<Ecosystem, boolean>>({
@@ -75,8 +71,15 @@ export default function PyramidClient({
     marine: false,
   });
   const [level, setLevel] = useState(demoPyramidLevel);
-  const [showLevelUp, setShowLevelUp] = useState(false);
-  const [pyramidFlipping, setPyramidFlipping] = useState(false);
+  const [pyramidCelebrating, setPyramidCelebrating] = useState(false);
+
+  const syncDemo = useCallback(async () => {
+    const demo = await fetchDemoCaptureState();
+    if (demo) {
+      setDemoDiscovered(demo.discovered);
+      setLevel(demo.pyramidLevel);
+    }
+  }, []);
 
   const refreshGame = useCallback(async () => {
     const state = await fetchGameState();
@@ -88,19 +91,21 @@ export default function PyramidClient({
     setFencedIds(new Set(state.fencedIds));
     setInvasive(state.invasive);
     if (state.demoPyramidLevel) setLevel(state.demoPyramidLevel);
-    if (state.pyramidJustCompleted) {
-      setPyramidFlipping(true);
-      window.setTimeout(() => {
-        setPyramidFlipping(false);
-        setShowLevelUp(true);
-      }, 1400);
+    if (state.pyramidJustCompleted && !consumePyramidCelebrationShown()) {
+      setEco("terrestrial");
+      setPyramidCelebrating(true);
     }
     if (state.loginBonus) setToast("🎁 ログインボーナス：みんなの生命力 +1pw！");
   }, []);
 
   useEffect(() => {
-    refreshGame().finally(() => setMounted(true));
-  }, [refreshGame, userId, discovered]);
+    async function init() {
+      await syncDemo();
+      await refreshGame();
+      setMounted(true);
+    }
+    void init();
+  }, [refreshGame, syncDemo, userId]);
 
   useEffect(() => {
     if (!toast) return;
@@ -111,8 +116,7 @@ export default function PyramidClient({
   const total = totals[eco] ?? 0;
   const found = mounted
     ? [...activeIds].filter((id) => id.startsWith(eco[0] + "-")).length
-    : discovered.filter((id) => id.startsWith(eco[0] + "-")).length;
-  const pct = total ? Math.round((found / total) * 100) : 0;
+    : demoDiscovered.filter((id) => id.startsWith(eco[0] + "-")).length;
   const invasiveThreat = mounted && invasive[eco];
   // Food is generic — every feed can go to any creature, regardless of tab.
   const ecoFeeds = mounted ? feeds : [];
@@ -199,12 +203,11 @@ export default function PyramidClient({
     setFoodPw(result.foodPw);
     setPwMap((prev) => ({ ...prev, [targetSpeciesId]: result.newPw }));
     if (result.recovered) {
-      // weak creature rescued — pink-cheek celebration (spec §3)
       setToast(`💗 ${result.predatorName} が元気になった！ +${result.gained}pw ♪`);
     } else {
       setToast(`${result.predatorName} +${result.gained}pw（残り餌 ${result.foodPw}pw）`);
     }
-    refreshGame();
+    await refreshGame();
   }
 
   async function placeFenceOn(speciesId: string) {
@@ -339,8 +342,6 @@ export default function PyramidClient({
               <span className={ECO_THEME[eco].text}>{found}/{total}種</span>
             </span>
           </div>
-          <ProgressBar value={pct} tone={ECO_PROGRESS_TONE[eco]} size="sm" shimmer className="mb-4 mx-1" />
-
           {invasiveThreat && (
             <div className="mb-3 mx-1 rounded-xl bg-red-50 border border-red-200 px-3 py-2 text-xs text-red-700 font-medium flex items-center gap-2">
               <span className="flex-1">外来種が生態系に影響しています — 在来種の生命力が減りやすくなります</span>
@@ -358,23 +359,32 @@ export default function PyramidClient({
             <p className="mb-3 mx-1 text-xs text-sky-700 font-semibold text-center">赤枠の外来種をタップして隔離しよう</p>
           )}
 
-          <div className={pyramidFlipping ? "pyramid-deck-flip" : ""}>
-          <Pyramid
-            ecosystem={eco}
-            discovered={set}
-            activeIds={mounted ? activeIds : undefined}
-            extinctIds={mounted ? extinctIds : undefined}
-            fencedIds={mounted ? fencedIds : undefined}
-            pwMap={mounted ? pwMap : undefined}
-            invasiveThreat={invasiveThreat}
-            selectedId={highlightedId}
-            onSelect={onTileSelect}
-            feedDropTargets={feedDropTargets}
-            feedHoverId={feedHoverId}
-            onFeedHover={setFeedHoverId}
-            onFeedDrop={(id, feedId) => void onFeedDropOnTile(id, feedId)}
-          />
-          </div>
+          {pyramidCelebrating && eco === "terrestrial" ? (
+            <PyramidCelebrationDeck
+              onComplete={() => {
+                setPyramidCelebrating(false);
+                void syncDemo();
+                void refreshGame();
+                setToast("🎉 ピラミッド完成！+30 B-mile と経験値を獲得");
+              }}
+            />
+          ) : (
+            <Pyramid
+              ecosystem={eco}
+              discovered={set}
+              activeIds={mounted ? activeIds : undefined}
+              extinctIds={mounted ? extinctIds : undefined}
+              fencedIds={mounted ? fencedIds : undefined}
+              pwMap={mounted ? pwMap : undefined}
+              invasiveThreat={invasiveThreat}
+              selectedId={highlightedId}
+              onSelect={onTileSelect}
+              feedDropTargets={feedDropTargets}
+              feedHoverId={feedHoverId}
+              onFeedHover={setFeedHoverId}
+              onFeedDrop={(id, feedId) => void onFeedDropOnTile(id, feedId)}
+            />
+          )}
 
           {/* Feed — 1/3/9 pw cards in one row. Tap a card then a creature (or drag). */}
           <div className="mt-4 rounded-2xl bg-neutral-50 border border-neutral-100 p-3">
@@ -457,24 +467,6 @@ export default function PyramidClient({
 
       {help && <HelpSheet onClose={() => setHelp(false)} />}
 
-      {showLevelUp && (
-        <div className="fixed inset-0 z-[70] bg-black/60 backdrop-blur-sm flex items-center justify-center p-6 modal-backdrop">
-          <div className="w-full max-w-sm bg-white rounded-3xl p-6 text-center shadow-2xl modal-sheet animate-scaleIn">
-            <LuPartyPopper size={40} className="mx-auto text-gold-500 animate-wiggle" />
-            <h2 className="mt-3 text-xl font-bold text-neutral-800">ピラミッド完成！</h2>
-            <p className="text-sm text-neutral-500 mt-2">
-              カードが回転して未発見の10枠に入れ替わりました。+30 B-mile と経験値を獲得！
-            </p>
-            <button
-              type="button"
-              onClick={() => setShowLevelUp(false)}
-              className="w-full mt-5 bg-forest-600 text-white font-bold rounded-xl py-3"
-            >
-              新しいピラミッドを見る
-            </button>
-          </div>
-        </div>
-      )}
     </div>
   );
 }

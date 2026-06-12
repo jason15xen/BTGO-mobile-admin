@@ -21,7 +21,6 @@ interface Props {
  * Falls back to an emoji-on-gradient tile if the image is missing or fails.
  */
 export default function SpeciesImage({ speciesId, emoji, alt, className = "", rounded = "" }: Props) {
-  // Prefer the locally-bundled photo; fall back to a browser-loaded proxy URL.
   const src = LOCAL[speciesId] ?? REMOTE[speciesId];
   const [failed, setFailed] = useState(false);
 
