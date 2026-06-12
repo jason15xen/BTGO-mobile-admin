@@ -1,6 +1,8 @@
 "use client";
 
-import { createContext, useContext, useState } from "react";
+import { createContext, useContext, useEffect, useState } from "react";
+import { resetDemoFlow } from "@/lib/gameApi";
+import { isPageReload } from "@/lib/isPageReload";
 import TopNav from "./TopNav";
 import BottomNav from "./BottomNav";
 
@@ -10,6 +12,11 @@ export const useImmersive = () => useContext(ImmersiveContext);
 
 export default function AppShell({ children }: { children: React.ReactNode }) {
   const [immersive, setImmersive] = useState(false);
+
+  useEffect(() => {
+    if (isPageReload()) void resetDemoFlow();
+  }, []);
+
   return (
     <ImmersiveContext.Provider value={setImmersive}>
       <div className="notranslate mx-auto w-full max-w-[480px] h-[100dvh] flex flex-col app-surface shell3d overflow-hidden">

@@ -1,6 +1,5 @@
 import { NextResponse } from "next/server";
-import { readObservations } from "@/lib/dataStore";
-import { DEMO_USER } from "@/lib/game";
+import { getDemoDiscoveredIds } from "@/lib/demoState";
 import { feedToTarget } from "@/lib/gameStore";
 
 export const runtime = "nodejs";
@@ -16,10 +15,7 @@ export async function POST(req: Request) {
       return NextResponse.json({ ok: false, reason: "invalid-target" }, { status: 400 });
     }
 
-    const all = await readObservations();
-    const discovered = new Set(
-      all.filter((o) => o.userId === DEMO_USER.id).map((o) => o.speciesId),
-    );
+    const discovered = new Set(getDemoDiscoveredIds());
 
     const result = feedToTarget(feedId, targetSpeciesId, discovered);
     if (result === "no-predator") {

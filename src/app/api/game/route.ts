@@ -1,6 +1,4 @@
 import { NextResponse } from "next/server";
-import { readObservations } from "@/lib/dataStore";
-import { DEMO_USER } from "@/lib/game";
 import { getGameState } from "@/lib/gameStore";
 
 export const runtime = "nodejs";
@@ -8,11 +6,9 @@ export const dynamic = "force-dynamic";
 
 export async function GET() {
   try {
-    const obs = await readObservations();
-    const discovered = obs
-      .filter((o) => o.userId === DEMO_USER.id)
-      .map((o) => o.speciesId);
-    return NextResponse.json(getGameState(discovered));
+    return NextResponse.json(getGameState([]), {
+      headers: { "Cache-Control": "no-store" },
+    });
   } catch (e) {
     return NextResponse.json(
       {

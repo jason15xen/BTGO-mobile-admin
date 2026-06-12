@@ -21,6 +21,8 @@ export type GameState = {
   fencedIds: string[];
   loginBonus: boolean;
   invasive: Record<Ecosystem, boolean>;
+  demoPyramidLevel?: number;
+  pyramidJustCompleted?: boolean;
 };
 
 export type FeedResult =
@@ -47,8 +49,29 @@ export async function updatePlayer(patch: {
   return data.profile ?? null;
 }
 
+export async function resetDemoFlow(): Promise<void> {
+  await fetch("/api/demo/reset", { method: "POST", cache: "no-store" });
+}
+
+export type DemoCaptureState = {
+  discovered: string[];
+  pyramidLevel: number;
+  nextCapture: { speciesId: string; kind: string } | null;
+};
+
+export async function fetchDemoCaptureState(): Promise<DemoCaptureState | null> {
+  const res = await fetch("/api/capture", { cache: "no-store" });
+  if (!res.ok) return null;
+  const data = await res.json();
+  return {
+    discovered: Array.isArray(data.discovered) ? data.discovered : [],
+    pyramidLevel: data.demo?.pyramidLevel ?? 1,
+    nextCapture: data.demo?.nextCapture ?? null,
+  };
+}
+
 export async function fetchGameState(): Promise<GameState> {
-  const res = await fetch("/api/game");
+  const res = await fetch("/api/game", { cache: "no-store" });
   if (!res.ok) {
     return {
       feeds: [],
@@ -59,6 +82,8 @@ export async function fetchGameState(): Promise<GameState> {
       fencedIds: [],
       loginBonus: false,
       invasive: { terrestrial: false, freshwater: false, marine: false },
+      demoPyramidLevel: 1,
+      pyramidJustCompleted: false,
     };
   }
   return res.json();

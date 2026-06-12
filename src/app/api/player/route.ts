@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { readObservations } from "@/lib/dataStore";
-import { discoveriesByUser, computeUserStats } from "@/lib/game";
+import { computeUserStats, levelTitle } from "@/lib/game";
+import { getDemoDiscoveredIds, getDemoPyramidLevel } from "@/lib/demoState";
 import { getGuestProfile, updateGuestProfile } from "@/lib/guestStore";
 import { getGameState } from "@/lib/gameStore";
 import { pyramidSummary } from "@/lib/pyramidSummary";
@@ -15,9 +16,11 @@ export async function GET() {
   try {
     const user = getGuestProfile();
     const obs = await readObservations();
-    const discoveries = discoveriesByUser(obs, user.id);
-    const discovered = Object.keys(discoveries);
+    const discovered = getDemoDiscoveredIds();
     const stats = computeUserStats(obs, user.id);
+    const demoLevel = getDemoPyramidLevel();
+    stats.level = demoLevel;
+    stats.title = levelTitle(demoLevel);
     const pyramid = pyramidSummary(discovered, PYRAMID_TOTAL);
     const game = getGameState(discovered);
 

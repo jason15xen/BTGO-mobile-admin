@@ -319,30 +319,26 @@ body {
   @keyframes pyramid-select-pulse {
     0%, 100% {
       box-shadow:
-        0 0 0 3px rgba(74, 222, 128, 0.7),
-        0 0 16px 4px rgba(74, 222, 128, 0.4);
-      transform: scale(1.1);
+        0 0 0 3px rgba(74, 222, 128, 0.85),
+        0 0 12px 3px rgba(74, 222, 128, 0.35);
     }
     50% {
       box-shadow:
-        0 0 0 5px rgba(74, 222, 128, 0.4),
-        0 0 22px 8px rgba(74, 222, 128, 0.25);
-      transform: scale(1.15);
+        0 0 0 4px rgba(74, 222, 128, 0.55),
+        0 0 18px 6px rgba(74, 222, 128, 0.25);
     }
   }
 
   @keyframes pyramid-select-pulse-red {
     0%, 100% {
       box-shadow:
-        0 0 0 3px rgba(248, 113, 113, 0.85),
-        0 0 16px 4px rgba(239, 68, 68, 0.45);
-      transform: scale(1.1);
+        0 0 0 3px rgba(248, 113, 113, 0.9),
+        0 0 12px 3px rgba(239, 68, 68, 0.4);
     }
     50% {
       box-shadow:
-        0 0 0 5px rgba(248, 113, 113, 0.5),
-        0 0 22px 8px rgba(239, 68, 68, 0.3);
-      transform: scale(1.15);
+        0 0 0 4px rgba(248, 113, 113, 0.6),
+        0 0 18px 6px rgba(239, 68, 68, 0.28);
     }
   }
 
@@ -359,6 +355,113 @@ body {
     animation: pyramid-select-pulse 1.6s ease-in-out infinite;
     background: rgba(220, 252, 231, 0.85);
     z-index: 20;
+  }
+
+  @keyframes pyramid-deck-flip {
+    0% {
+      transform: perspective(900px) rotateY(0deg) scale(1);
+      opacity: 1;
+    }
+    40% {
+      transform: perspective(900px) rotateY(88deg) scale(0.92);
+      opacity: 0.35;
+    }
+    100% {
+      transform: perspective(900px) rotateY(0deg) scale(1);
+      opacity: 1;
+    }
+  }
+
+  .pyramid-deck-flip {
+    animation: pyramid-deck-flip 1.35s ease-in-out;
+    transform-style: preserve-3d;
+    transform-origin: center center;
+  }
+
+  .pyramid-celebrate-wrap {
+    position: relative;
+  }
+
+  @keyframes pyramid-celebrate-pulse {
+    0%, 100% {
+      box-shadow:
+        0 0 0 3px rgba(251, 191, 36, 0.55),
+        0 0 20px 4px rgba(74, 222, 128, 0.35),
+        0 0 36px 8px rgba(56, 189, 248, 0.2);
+    }
+    50% {
+      box-shadow:
+        0 0 0 5px rgba(244, 114, 182, 0.5),
+        0 0 28px 8px rgba(251, 191, 36, 0.45),
+        0 0 48px 12px rgba(167, 139, 250, 0.25);
+    }
+  }
+
+  .pyramid-celebrate-ring {
+    animation: pyramid-celebrate-pulse 1.4s ease-in-out infinite;
+  }
+
+  @keyframes pyramid-celebrate-shimmer {
+    0% { opacity: 0.35; background-position: 0% 50%; }
+    50% { opacity: 0.65; }
+    100% { opacity: 0.35; background-position: 200% 50%; }
+  }
+
+  .pyramid-celebrate-shimmer {
+    background: linear-gradient(
+      120deg,
+      rgba(251, 191, 36, 0.15),
+      rgba(74, 222, 128, 0.2),
+      rgba(56, 189, 248, 0.15),
+      rgba(244, 114, 182, 0.2),
+      rgba(167, 139, 250, 0.15)
+    );
+    background-size: 200% 200%;
+    animation: pyramid-celebrate-shimmer 2.2s ease-in-out infinite;
+  }
+
+  @keyframes pyramid-confetti-fall {
+    0% {
+      transform: translateY(-8px) rotate(0deg) scale(0.6);
+      opacity: 0;
+    }
+    8% {
+      opacity: 1;
+    }
+    100% {
+      transform: translateY(260px) rotate(540deg) scale(1);
+      opacity: 0;
+    }
+  }
+
+  .pyramid-confetti-piece {
+    position: absolute;
+    top: 0;
+    left: var(--confetti-x, 50%);
+    width: 7px;
+    height: 11px;
+    background: var(--confetti-color, #fbbf24);
+    border-radius: 1px;
+    transform: rotate(var(--confetti-rot, 0deg));
+    animation: pyramid-confetti-fall 2.6s ease-in-out infinite;
+    animation-delay: var(--confetti-delay, 0s);
+  }
+
+  @keyframes pyramid-sparkle-float {
+    0%, 100% {
+      transform: translateY(0) scale(0.85) rotate(-8deg);
+      opacity: 0.35;
+    }
+    50% {
+      transform: translateY(-10px) scale(1.15) rotate(8deg);
+      opacity: 1;
+    }
+  }
+
+  .pyramid-celebrate-sparkle {
+    position: absolute;
+    animation: pyramid-sparkle-float 1.8s ease-in-out infinite;
+    animation-delay: var(--sparkle-delay, 0s);
   }
 
   /* Stars eject from tile perimeter — new species */

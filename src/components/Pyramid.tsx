@@ -1,5 +1,5 @@
 import { SPECIES, PYRAMID_SLOTS } from "@/data/species";
-import { pwTileScale, pwVisual } from "@/lib/creature";
+import { INITIAL_PW, pwTileScale, pwVisual } from "@/lib/creature";
 import type { Ecosystem, Species } from "@/lib/types";
 import type { IconType } from "react-icons";
 import { LuChevronUp } from "react-icons/lu";
@@ -108,7 +108,7 @@ const STAR_BURST_COUNT = 28;
 /** Stars continuously eject from the tile perimeter. */
 function StarlightFrame({ children }: { children: React.ReactNode }) {
   return (
-    <div className="species-starlight relative flex items-center justify-center w-[3.5rem] h-[3.5rem] shrink-0">
+    <div className="species-starlight relative flex items-center justify-center w-full h-full shrink-0">
       <div className="species-starlight__halo" aria-hidden />
       <div className="absolute inset-0 overflow-visible pointer-events-none" aria-hidden>
         {Array.from({ length: STAR_BURST_COUNT }, (_, i) => {
@@ -156,7 +156,7 @@ interface PyramidProps {
   feedDropTargets?: Set<string>;
   feedHoverId?: string | null;
   onFeedHover?: (speciesId: string | null) => void;
-  onFeedDrop?: (speciesId: string) => void;
+  onFeedDrop?: (speciesId: string, feedId?: string) => void;
 }
 
 function PyramidTile({
@@ -190,19 +190,35 @@ function PyramidTile({
   canReceiveFeed?: boolean;
   isFeedHover?: boolean;
   onFeedHover?: (speciesId: string | null) => void;
-  onFeedDrop?: (speciesId: string) => void;
+  onFeedDrop?: (speciesId: string, feedId?: string) => void;
 }) {
-  const tile = embedded
+  const tileFixed = embedded
     ? "w-11 h-11 rounded-lg"
     : "w-[10vw] max-w-12 h-[10vw] max-h-12 min-w-9 min-h-9 rounded-xl sm:w-12 sm:h-12";
+  const tileFill = embedded ? "w-full h-full rounded-lg" : "w-full h-full rounded-xl sm:rounded-xl";
+  const baseDim = embedded ? "2.75rem" : "min(10vw, 3rem)";
+  const minDim = embedded ? "2.75rem" : "2.25rem";
 
-  const visual = showPhoto && !extinct && pw !== undefined ? pwVisual(pw) : "normal";
-  const vitalityScale = showPhoto && !extinct && pw !== undefined ? pwTileScale(pw) : extinct ? 0.9 : 1;
+  const effectivePw = pw ?? INITIAL_PW;
+  const visual = showPhoto && !extinct ? pwVisual(effectivePw) : "normal";
+  const vitalityScale = showPhoto && !extinct ? pwTileScale(effectivePw) : extinct ? 0.9 : 1;
+  const scaledSizeStyle: React.CSSProperties | undefined =
+    showPhoto && !extinct
+      ? {
+          width: `calc(${baseDim} * ${vitalityScale})`,
+          height: `calc(${baseDim} * ${vitalityScale})`,
+          minWidth: `calc(${minDim} * ${vitalityScale})`,
+          minHeight: `calc(${minDim} * ${vitalityScale})`,
+        }
+      : undefined;
+
   const inner = (
     <>
       {showPhoto ? (
         <div
-          className={`w-full h-full flex items-center justify-center ${
+          className={`w-full h-full flex items-center justify-center overflow-hidden ${
+            embedded ? "rounded-lg" : "rounded-xl"
+          } ${
             extinct
               ? "grayscale opacity-60"
               : visual === "weak"
@@ -251,7 +267,11 @@ function PyramidTile({
     : canReceiveFeed
       ? "ring-2 ring-dashed ring-forest-400/70"
       : isSelected
-    ? "ring-[3px] ring-forest-400"
+    ? showPhoto
+      ? s.invasive
+        ? "ring-[3px] ring-red-500"
+        : "ring-[3px] ring-forest-500"
+      : "ring-[3px] ring-forest-500"
     : extinct
       ? "ring-1 ring-neutral-300/60"
     : showPhoto
@@ -272,8 +292,7 @@ function PyramidTile({
       : "pyramid-tile-selected pyramid-tile-selected--undiscovered"
     : "";
 
-  const pressCls = onSelect && !isSelected ? "active:scale-95" : "";
-  const cls = ["relative", tile, "shrink-0", "transition-all", selectedCls, pressCls, ringCls, "overflow-visible"]
+  const cls = ["relative", showPhoto ? tileFill : tileFixed, "shrink-0", "transition-shadow", selectedCls, ringCls, "overflow-visible"]
     .filter(Boolean)
     .join(" ");
 
@@ -289,7 +308,7 @@ function PyramidTile({
         onDrop: (e: React.DragEvent) => {
           e.preventDefault();
           onFeedHover?.(null);
-          onFeedDrop(s.id);
+          onFeedDrop(s.id, e.dataTransfer.getData("application/feed-id") || undefined);
         },
       }
     : showPhoto || canReceiveFeed
@@ -314,20 +333,18 @@ function PyramidTile({
     <div className={cls} {...dropHandlers}>{inner}</div>
   );
 
-  const scaled = (
+  const sizedTile = scaledSizeStyle ? (
     <div
-      className="transition-transform duration-300 ease-out origin-center"
-      style={{ transform: `scale(${vitalityScale})` }}
+      className="shrink-0 flex items-center justify-center transition-[width,height,min-width,min-height] duration-300 ease-out"
+      style={scaledSizeStyle}
     >
-      {tileEl}
+      {isNew && showPhoto ? <StarlightFrame>{tileEl}</StarlightFrame> : tileEl}
     </div>
+  ) : (
+    tileEl
   );
 
-  if (isNew && showPhoto) {
-    return <StarlightFrame>{scaled}</StarlightFrame>;
-  }
-
-  return scaled;
+  return sizedTile;
 }
 
 export default function Pyramid({

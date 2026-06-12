@@ -3,10 +3,18 @@ import type { Species } from "./types";
 /** PoC vitality (pw) rules. */
 
 export const INITIAL_PW = 10;
-export const MAX_PW = 10; // hard cap — a creature never exceeds 10 pw
 export const DECAY_PER_DAY = 1;
-export const PW_STRONG_THRESHOLD = 10; // 10以上 = 大きく表示
-export const PW_WEAK_THRESHOLD = 3; // 3以下 = 小さく表示
+export const PW_STRONG_THRESHOLD = 10; // >10 = 大
+export const PW_WEAK_THRESHOLD = 3; // <3 = 小
+
+/** Tile size tier from vitality (pw). */
+export type PwTileTier = "small" | "medium" | "large";
+
+const PW_TILE_SCALE: Record<PwTileTier, number> = {
+  small: 0.58,
+  medium: 0.88,
+  large: 1.2,
+};
 export const MS_PER_DAY = 24 * 60 * 60 * 1000;
 
 /** Food comes in three sizes (any creature can eat any food). */
@@ -38,12 +46,17 @@ export function applyDecay(
   };
 }
 
-/** Tile scale from vitality — low pw clearly small, high pw clearly large. */
+/** Vitality tier: <3 small, 3–10 medium, >10 large. */
+export function pwTileTier(pw: number): PwTileTier {
+  if (pw < PW_WEAK_THRESHOLD) return "small";
+  if (pw > PW_STRONG_THRESHOLD) return "large";
+  return "medium";
+}
+
+/** Tile scale from vitality tier. */
 export function pwTileScale(pw: number): number {
-  const clamped = Math.max(1, Math.min(INITIAL_PW, pw));
-  if (INITIAL_PW <= 1) return 1;
-  // pw 1 → 0.5 (small) … pw 10 → 1.3 (large)
-  return 0.5 + ((clamped - 1) / (INITIAL_PW - 1)) * 0.8;
+  if (pw <= 0) return PW_TILE_SCALE.small;
+  return PW_TILE_SCALE[pwTileTier(pw)];
 }
 
 /** @deprecated Use pwTileScale — kept for inner image emphasis. */
@@ -54,7 +67,7 @@ export function pwScale(pw: number): number {
 export type PwVisual = "weak" | "normal" | "strong";
 
 export function pwVisual(pw: number): PwVisual {
-  if (pw <= PW_WEAK_THRESHOLD) return "weak";
-  if (pw >= PW_STRONG_THRESHOLD) return "strong";
+  if (pw < PW_WEAK_THRESHOLD) return "weak";
+  if (pw > PW_STRONG_THRESHOLD) return "strong";
   return "normal";
 }

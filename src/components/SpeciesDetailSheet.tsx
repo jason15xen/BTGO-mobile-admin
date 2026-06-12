@@ -88,7 +88,13 @@ export default function SpeciesDetailSheet({
               <StatRow icon={<LuCalendar size={13} />} label="発見日" value={fmtDate(discovery.firstFound)} />
               <StatRow icon={<span className="text-gold-500 font-bold text-[10px]">B</span>} label="獲得B-mile" value={`+${bmile}`} accent />
               <StatRow icon={<LuHash size={13} />} label="観察回数" value={`${discovery.count} 回`} />
-              {pw !== undefined && <StatRow icon={<LuActivity size={13} />} label="生命力" value={`${pw} pw`} />}
+              {pw !== undefined && (
+                <StatRow
+                  icon={<LuActivity size={13} />}
+                  label="生命力"
+                  value={`${Number.isInteger(pw) ? pw : pw.toFixed(1)} pw`}
+                />
+              )}
               {info?.habitat && <StatRow icon={<LuMapPin size={13} />} label="生息地" value={info.habitat} />}
             </div>
 
