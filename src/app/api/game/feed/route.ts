@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { getDemoDiscoveredIds } from "@/lib/demoState";
+import { getDemoDiscoveredIds, syncDemoStep } from "@/lib/demoState";
 import { feedToTarget } from "@/lib/gameStore";
 
 export const runtime = "nodejs";
@@ -7,7 +7,8 @@ export const dynamic = "force-dynamic";
 
 export async function POST(req: Request) {
   try {
-    const { feedId, targetSpeciesId } = await req.json();
+    const { feedId, targetSpeciesId, captureStep } = await req.json();
+    syncDemoStep(Number(captureStep ?? 0));
     if (!feedId || typeof feedId !== "string") {
       return NextResponse.json({ ok: false, reason: "error" }, { status: 400 });
     }

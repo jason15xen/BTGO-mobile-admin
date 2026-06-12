@@ -122,7 +122,9 @@ export default function PyramidClient({
     setExtinctIds(new Set(game.extinctIds));
     setFencedIds(new Set(game.fencedIds));
     setInvasive(game.invasive);
-    if (game.pyramidJustCompleted && !consumePyramidCelebrationShown()) {
+    // A completed capture sets a one-shot sessionStorage flag; consume it on the
+    // first sync after arriving at the pyramid to play the flip celebration once.
+    if (opts?.initial && consumePyramidCelebrationShown()) {
       setEco("terrestrial");
       setPyramidCelebrating(true);
     }

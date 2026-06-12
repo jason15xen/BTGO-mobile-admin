@@ -1,3 +1,4 @@
+import { clearDemoStep, getDemoStep } from "@/lib/demoClient";
 import type { DiaryEntry, Ecosystem, FeedItem, UserProfile } from "@/lib/types";
 import type { PyramidEcoSummary } from "@/lib/pyramidSummary";
 import type { UserStats } from "@/lib/game";
@@ -50,22 +51,26 @@ export async function updatePlayer(patch: {
 }
 
 export async function resetDemoFlow(): Promise<void> {
+  // Progress lives in localStorage — clearing it is what restarts the demo.
+  clearDemoStep();
   if (typeof sessionStorage !== "undefined") {
     sessionStorage.removeItem("btgo-pyramid-celebrated");
     sessionStorage.removeItem("btgo-view-pyramid");
   }
-  await fetch("/api/demo/reset", { method: "POST", cache: "no-store" });
+  // Best-effort server cleanup (feeding/pw). Not relied on for progress.
+  await fetch("/api/demo/reset", { method: "POST", cache: "no-store" }).catch(() => {});
 }
 
 /**
- * Reset the scripted demo exactly once per full document load.
+ * Restart the demo exactly once per full document load by clearing the
+ * localStorage progress (and best-effort server cleanup).
  *
  * This module is evaluated fresh on every real page load — first visit, F5, or
  * any browser reload — so `demoSessionReset` starts as `null` each time and the
- * demo restarts (requirement: "restart on F5/reload"). Client-side (SPA)
+ * progress is cleared (requirement: "restart on F5/reload"). Client-side (SPA)
  * navigation and photo captures reuse the same loaded module, so the memoized
- * promise is returned without resetting — the pyramid keeps its state and the
- * initial nine entities never reappear mid-session.
+ * promise is returned without clearing — localStorage keeps the captureStep and
+ * the initial nine entities never reappear mid-session.
  *
  * All callers await the SAME promise, so concurrent mounts trigger one reset.
  */
@@ -90,7 +95,7 @@ export type DemoCaptureState = {
 };
 
 export async function fetchDemoCaptureState(): Promise<DemoCaptureState | null> {
-  const res = await fetch("/api/capture", { cache: "no-store" });
+  const res = await fetch(`/api/capture?step=${getDemoStep()}`, { cache: "no-store" });
   if (!res.ok) return null;
   const data = await res.json();
   return {
@@ -106,7 +111,7 @@ export type DemoStateSnapshot = DemoCaptureState & {
 };
 
 export async function fetchDemoStateSnapshot(): Promise<DemoStateSnapshot | null> {
-  const res = await fetch("/api/demo/state", { cache: "no-store" });
+  const res = await fetch(`/api/demo/state?step=${getDemoStep()}`, { cache: "no-store" });
   if (!res.ok) return null;
   const data = await res.json();
   const fill = data.pyramidFill ?? {};
@@ -124,7 +129,7 @@ export async function fetchDemoStateSnapshot(): Promise<DemoStateSnapshot | null
 }
 
 export async function fetchGameState(): Promise<GameState> {
-  const res = await fetch("/api/game", { cache: "no-store" });
+  const res = await fetch(`/api/game?step=${getDemoStep()}`, { cache: "no-store" });
   if (!res.ok) {
     return {
       feeds: [],
@@ -149,7 +154,7 @@ export async function postFeed(
   const res = await fetch("/api/game/feed", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ feedId, targetSpeciesId }),
+    body: JSON.stringify({ feedId, targetSpeciesId, captureStep: getDemoStep() }),
   });
   const data = await res.json().catch(() => ({}));
   if (res.ok && data.ok) return data;

@@ -19,6 +19,23 @@ const getMemory = createServerMemory<DemoMemory>("__btgoDemoState", () => ({
   pyramidJustCompleted: false,
 }));
 
+/**
+ * Mirror the client-authoritative progress (from localStorage) into this
+ * request's server memory. The client sends its `captureStep` with every
+ * request, so the server derives all demo state from it deterministically and
+ * never relies on remembering progress between requests. `terrestrialRound` is
+ * derived: the only terrestrial slot left to fill is the hawk (step 0), so once
+ * any capture has happened the land pyramid has flipped (round 2).
+ */
+export function syncDemoStep(step: number) {
+  const mem = getMemory();
+  const clamped = Number.isFinite(step)
+    ? Math.max(0, Math.min(Math.floor(step), DEMO_CAPTURE_SCRIPT.length))
+    : 0;
+  mem.captureStep = clamped;
+  mem.terrestrialRound = clamped >= 1 ? 2 : 1;
+}
+
 export function getDemoPyramidLevel() {
   return getMemory().terrestrialRound;
 }

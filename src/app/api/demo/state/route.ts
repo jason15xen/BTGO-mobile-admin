@@ -5,6 +5,7 @@ import {
   getDemoPyramidLevel,
   getNextScriptedCapture,
   getPyramidFilledMap,
+  syncDemoStep,
 } from "@/lib/demoState";
 import { DEMO_CAPTURE_SCRIPT } from "@/lib/demoScript";
 import { getGameState } from "@/lib/gameStore";
@@ -13,8 +14,9 @@ export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 /** Single snapshot of demo script + game state (avoids inconsistent reads). */
-export async function GET() {
+export async function GET(req: Request) {
   try {
+    syncDemoStep(Number(new URL(req.url).searchParams.get("step") ?? 0));
     const step = getDemoCaptureStep();
     const next = getNextScriptedCapture();
     return NextResponse.json(

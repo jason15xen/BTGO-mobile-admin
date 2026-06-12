@@ -1,11 +1,13 @@
 import { NextResponse } from "next/server";
+import { syncDemoStep } from "@/lib/demoState";
 import { getGameState } from "@/lib/gameStore";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-export async function GET() {
+export async function GET(req: Request) {
   try {
+    syncDemoStep(Number(new URL(req.url).searchParams.get("step") ?? 0));
     return NextResponse.json(getGameState([]), {
       headers: { "Cache-Control": "no-store" },
     });

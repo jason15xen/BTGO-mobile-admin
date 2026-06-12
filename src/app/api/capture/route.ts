@@ -8,6 +8,7 @@ import {
   getDemoDiscoveredIds,
   getDemoPyramidLevel,
   getNextScriptedCapture,
+  syncDemoStep,
 } from "@/lib/demoState";
 import { DEMO_CAPTURE_SCRIPT, PYRAMID_COMPLETE_REWARD } from "@/lib/demoScript";
 import { rewardForCapture } from "@/lib/game";
@@ -27,9 +28,10 @@ const SPOTS = [
   { name: "田子の浦", lat: 35.13, lng: 138.7 },
 ];
 
-export async function GET() {
+export async function GET(req: Request) {
   try {
     const user = getGuestProfile();
+    syncDemoStep(Number(new URL(req.url).searchParams.get("step") ?? 0));
     const next = getNextScriptedCapture();
     const step = getDemoCaptureStep();
     return NextResponse.json({
@@ -50,10 +52,12 @@ export async function GET() {
 export async function POST(req: Request) {
   try {
     const user = getGuestProfile();
-    // The photo payload is accepted but not authoritative: the demo sequence is
-    // server-driven, so any capture simply advances to the next scripted step.
-    // There is no enforced order and no "wrong species" rejection.
-    await req.json().catch(() => ({}));
+    // Progress is client-authoritative (localStorage): the client sends its
+    // current step and we mirror it before deriving anything. The photo payload
+    // is otherwise not authoritative — any capture advances the scripted step,
+    // with no enforced order and no "wrong species" rejection.
+    const body = await req.json().catch(() => ({}));
+    syncDemoStep(Number(body?.captureStep ?? 0));
 
     const next = getNextScriptedCapture();
     if (!next) {

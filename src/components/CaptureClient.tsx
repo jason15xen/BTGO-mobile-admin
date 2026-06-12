@@ -15,6 +15,7 @@ import PyramidCelebrationDeck, {
 import SpeciesImage from "@/components/SpeciesImage";
 import { useImmersive } from "@/components/AppShell";
 import { ensureDemoSessionReady, fetchDemoCaptureState } from "@/lib/gameApi";
+import { getDemoStep, setDemoStep } from "@/lib/demoClient";
 import type { IconType } from "react-icons";
 import { FiX, FiZap, FiImage, FiCamera, FiMapPin, FiTag, FiBarChart2, FiAlertTriangle, FiBookOpen, FiChevronLeft } from "react-icons/fi";
 import { LuUtensils, LuPartyPopper, LuSwitchCamera } from "react-icons/lu";
@@ -214,7 +215,11 @@ export default function CaptureClient() {
       const res = await fetch("/api/capture", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ speciesId: subject.id, photoData: shot ?? undefined }),
+        body: JSON.stringify({
+          speciesId: subject.id,
+          photoData: shot ?? undefined,
+          captureStep: getDemoStep(),
+        }),
       });
       const data = await res.json().catch(() => ({}));
       // No order enforcement: only a genuine error or a finished demo lands here.
@@ -223,6 +228,8 @@ export default function CaptureClient() {
         setPhase("camera");
         return;
       }
+      // Persist progress client-side (the single source of truth).
+      if (typeof data.demo?.captureStep === "number") setDemoStep(data.demo.captureStep);
       // The server is authoritative about which creature was recognized.
       const recognized = data.recognizedSpeciesId
         ? SPECIES_BY_ID[data.recognizedSpeciesId as string] ?? subject
