@@ -5,7 +5,7 @@ import AppShell from "@/components/AppShell";
 export const metadata: Metadata = {
   title: "BTGO — Bio Trail GO",
   description: "富士の自然探索 — 生き物発見アプリ",
-  icons: { icon: "/icon.svg", shortcut: "/icon.svg", apple: "/icon.svg" },
+  icons: { icon: "/logo.png", shortcut: "/logo.png", apple: "/logo.png" },
   other: { google: "notranslate" },
 };
 
