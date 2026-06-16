@@ -120,3 +120,20 @@ export function discoveriesByUser(allObs: Observation[], userId: string = DEMO_U
   }
   return map;
 }
+
+/** Demo / pyramid slots without observation rows yet. */
+export function placeholderDiscovery(area = "デモ"): Discovery {
+  return {
+    count: 1,
+    firstFound: new Date().toISOString(),
+    area,
+    lat: 35.36,
+    lng: 138.73,
+  };
+}
+
+export function discoveriesForIds(ids: Iterable<string>): Record<string, Discovery> {
+  const map: Record<string, Discovery> = {};
+  for (const id of ids) map[id] = placeholderDiscovery();
+  return map;
+}

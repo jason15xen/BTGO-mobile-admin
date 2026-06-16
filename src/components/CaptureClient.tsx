@@ -6,6 +6,8 @@ import { SPECIES, ECOSYSTEM_LABEL, SPECIES_BY_ID } from "@/data/species";
 import { SPECIES_INFO } from "@/data/speciesInfo";
 import { ECO_THEME } from "@/lib/theme";
 import { rewardForCapture } from "@/lib/game";
+import { captureFeedPw } from "@/lib/creature";
+import type { DemoCaptureKind } from "@/lib/demoScript";
 import type { Species } from "@/lib/types";
 import Pyramid from "@/components/Pyramid";
 import PyramidCelebrationDeck, {
@@ -52,6 +54,7 @@ export default function CaptureClient() {
   const [pyramidComplete, setPyramidComplete] = useState(false);
   const [demoPyramidLevel, setDemoPyramidLevel] = useState(1);
   const [scriptedSpeciesId, setScriptedSpeciesId] = useState<string | null>(null);
+  const [scriptedCaptureKind, setScriptedCaptureKind] = useState<DemoCaptureKind | null>(null);
   const [demoMode, setDemoMode] = useState(true);
 
   const setImmersive = useImmersive();
@@ -122,6 +125,11 @@ export default function CaptureClient() {
     setDiscovered(new Set(demo.discovered));
     setDemoPyramidLevel(demo.pyramidLevel);
     setScriptedSpeciesId(demo.nextCapture?.speciesId ?? null);
+    setScriptedCaptureKind(
+      demo.nextCapture?.kind === "re_discover" || demo.nextCapture?.kind === "new_species"
+        ? demo.nextCapture.kind
+        : null,
+    );
     setDemoMode(Boolean(demo.nextCapture));
   }, []);
 
@@ -247,6 +255,11 @@ export default function CaptureClient() {
       if (data.demoPyramidLevel) setDemoPyramidLevel(data.demoPyramidLevel);
       setDiscovered(new Set<string>(data.myDiscovered ?? [...discovered, recognized.id]));
       setScriptedSpeciesId(data.demo?.nextCapture?.speciesId ?? null);
+      setScriptedCaptureKind(
+        data.demo?.nextCapture?.kind === "re_discover" || data.demo?.nextCapture?.kind === "new_species"
+          ? data.demo.nextCapture.kind
+          : null,
+      );
       setDemoMode(Boolean(data.demo?.nextCapture));
       setPhase("reflection");
     } catch {
@@ -371,7 +384,12 @@ export default function CaptureClient() {
   const theme = ECO_THEME[subject.ecosystem];
   const info = SPECIES_INFO[subject.id];
   const guessedNew = !discovered.has(subject.id);
-  const rw = rewardForCapture(subject, guessedNew);
+  const previewFeedOnly =
+    demoMode &&
+    scriptedCaptureKind === "re_discover" &&
+    subject.id === scriptedSpeciesId;
+  const rw = previewFeedOnly ? { xp: 0, points: 0 } : rewardForCapture(subject, guessedNew);
+  const previewFeedPw = previewFeedOnly ? captureFeedPw(subject) : null;
 
   // ---------------- RESULT (designated organism + info) ----------------
   if (phase === "result" || phase === "saving") {
@@ -406,18 +424,28 @@ export default function CaptureClient() {
 
         <div className="px-5 mt-4 space-y-4">
           {/* reward */}
-          <div className="card3d rounded-2xl p-4 flex items-center justify-around">
-            <Reward label="経験値" value={`+${rw.xp}`} cls="text-forest-600" />
-            <div className="w-px h-8 bg-neutral-100" />
-            <Reward label="B-mile" value={`+${rw.points}`} cls="text-gold-500" />
-            {subject.invasive && (
-              <>
+          {previewFeedOnly ? (
+            <div className="card3d rounded-2xl p-4 text-center">
+              <div className="text-2xl">🍃</div>
+              <p className="text-sm font-bold text-gold-700 mt-1">+{previewFeedPw}pw の餌</p>
+              <p className="text-xs text-neutral-500 mt-1">この個体はすでに発見されています — B-mile・経験値は付与されません</p>
+            </div>
+          ) : (
+            <>
+              <div className="card3d rounded-2xl p-4 flex items-center justify-around">
+                <Reward label="経験値" value={`+${rw.xp}`} cls="text-forest-600" />
                 <div className="w-px h-8 bg-neutral-100" />
-                <Reward label="外来種報告" value={<FiAlertTriangle className="mx-auto" size={20} />} cls="text-coral-500" />
-              </>
-            )}
-          </div>
-          {!guessedNew && <p className="text-center text-[11px] text-neutral-400">再撮影 — 少量のB-mile</p>}
+                <Reward label="B-mile" value={`+${rw.points}`} cls="text-gold-500" />
+                {subject.invasive && (
+                  <>
+                    <div className="w-px h-8 bg-neutral-100" />
+                    <Reward label="外来種報告" value={<FiAlertTriangle className="mx-auto" size={20} />} cls="text-coral-500" />
+                  </>
+                )}
+              </div>
+              {!guessedNew && <p className="text-center text-[11px] text-neutral-400">再撮影 — 少量のB-mile</p>}
+            </>
+          )}
 
           {/* specific information */}
           <div className="card3d rounded-2xl p-5 space-y-3">
@@ -441,6 +469,8 @@ export default function CaptureClient() {
           >
             {phase === "saving" ? (
               "登録中…"
+            ) : previewFeedOnly ? (
+              <span className="flex items-center justify-center gap-2"><LuUtensils size={18} /> 餌を獲得する</span>
             ) : (
               <span className="flex items-center justify-center gap-2"><FiBookOpen size={18} /> 図鑑に登録する</span>
             )}

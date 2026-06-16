@@ -1,4 +1,5 @@
 import { clearDemoStep, getDemoStep } from "@/lib/demoClient";
+import type { DemoCaptureKind } from "@/lib/demoScript";
 import type { DiaryEntry, Ecosystem, FeedItem, UserProfile } from "@/lib/types";
 import type { PyramidEcoSummary } from "@/lib/pyramidSummary";
 import type { UserStats } from "@/lib/game";
@@ -91,7 +92,7 @@ export function ensureDemoSessionReady(): Promise<void> {
 export type DemoCaptureState = {
   discovered: string[];
   pyramidLevel: number;
-  nextCapture: { speciesId: string; kind: string } | null;
+  nextCapture: { speciesId: string; kind: DemoCaptureKind } | null;
 };
 
 export async function fetchDemoCaptureState(): Promise<DemoCaptureState | null> {

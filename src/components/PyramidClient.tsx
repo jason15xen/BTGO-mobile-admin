@@ -16,7 +16,7 @@ import { ensureDemoSessionReady, fetchDemoStateSnapshot, postFeed, postFence } f
 import type { Ecosystem, FeedItem } from "@/lib/types";
 import { PageHero, Screen, Card } from "@/components/ui";
 import SpeciesDetailSheet from "@/components/SpeciesDetailSheet";
-import type { Discovery } from "@/lib/game";
+import { placeholderDiscovery, type Discovery } from "@/lib/game";
 import type { Species } from "@/lib/types";
 
 const TABS: { key: Ecosystem }[] = [{ key: "terrestrial" }, { key: "freshwater" }, { key: "marine" }];
@@ -210,6 +210,18 @@ export default function PyramidClient({
   }
 
   const discoveredSet = useMemo(() => new Set(demoDiscovered), [demoDiscovered]);
+
+  /** SSR discoveries are stale after captures — merge synced demo ids + visible pyramid slots. */
+  const discoveryMap = useMemo(() => {
+    const map: Record<string, Discovery> = { ...discoveries };
+    for (const id of demoDiscovered) {
+      if (!map[id]) map[id] = placeholderDiscovery();
+    }
+    for (const id of pyramidVisibleIds) {
+      if (!map[id]) map[id] = placeholderDiscovery();
+    }
+    return map;
+  }, [discoveries, demoDiscovered, pyramidVisibleIds]);
 
   const feedTargetSet = useMemo(() => {
     if (!mounted || activeIds.size === 0) return new Set<string>();
@@ -513,8 +525,8 @@ export default function PyramidClient({
         </div>
       )}
 
-      {sel && sel.found && discoveries[sel.s.id] ? (
-        <SpeciesDetailSheet species={sel.s} discovery={discoveries[sel.s.id]} pw={pwMap[sel.s.id]} onClose={() => { setSel(null); setHighlightedId(null); }} />
+      {sel && discoveryMap[sel.s.id] ? (
+        <SpeciesDetailSheet species={sel.s} discovery={discoveryMap[sel.s.id]} pw={pwMap[sel.s.id]} onClose={() => { setSel(null); setHighlightedId(null); }} />
       ) : sel ? (
         <HintSheet s={sel.s} onClose={() => { setSel(null); setHighlightedId(null); }} />
       ) : null}

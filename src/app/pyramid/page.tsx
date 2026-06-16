@@ -1,5 +1,5 @@
 import { getDemoDiscoveredIds, getDemoPyramidLevel } from "@/lib/demoState";
-import { DEMO_USER, type Discovery } from "@/lib/game";
+import { DEMO_USER, discoveriesForIds } from "@/lib/game";
 import { PYRAMID_TOTAL } from "@/data/species";
 import PyramidClient from "@/components/PyramidClient";
 
@@ -7,16 +7,7 @@ export const dynamic = "force-dynamic";
 
 export default async function PyramidPage() {
   const discovered = getDemoDiscoveredIds();
-  const discoveries: Record<string, Discovery> = {};
-  for (const id of discovered) {
-    discoveries[id] = {
-      count: 1,
-      firstFound: new Date().toISOString(),
-      area: "デモ",
-      lat: 35.36,
-      lng: 138.73,
-    };
-  }
+  const discoveries = discoveriesForIds(discovered);
 
   const totals = {
     terrestrial: PYRAMID_TOTAL,
