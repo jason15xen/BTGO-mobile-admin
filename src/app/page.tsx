@@ -1,4 +1,4 @@
-import Link from "next/link";
+import CaptureLink from "@/components/CaptureLink";
 import { FiCamera } from "react-icons/fi";
 import { LuLeaf } from "react-icons/lu";
 import HomeRareAlert from "@/components/HomeRareAlert";
@@ -55,13 +55,12 @@ export default async function HomePage() {
         <div className="absolute inset-0 bg-gradient-to-t from-black/35 via-transparent to-transparent" aria-hidden />
 
         <div className="relative flex flex-1 flex-col items-center justify-center gap-2.5 py-8">
-          <Link
-            href="/capture"
+          <CaptureLink
             aria-label="生き物を見つける"
             className="w-[68px] h-[68px] rounded-full bg-gradient-to-b from-forest-500 to-forest-700 ring-4 ring-white/50 flex items-center justify-center text-white orb3d animate-float celebrate-ring active:scale-90 transition-transform"
           >
             <FiCamera size={30} className="animate-bounceSoft" />
-          </Link>
+          </CaptureLink>
           <span className="text-white font-bold text-lg drop-shadow pointer-events-none select-none animate-fadeIn stagger-3">生き物を見つける</span>
         </div>
 

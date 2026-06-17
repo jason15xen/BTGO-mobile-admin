@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import CaptureLink from "@/components/CaptureLink";
 import { LuSparkles, LuX, LuMapPin, LuCalendar, LuCamera } from "react-icons/lu";
 import SpeciesImage from "@/components/SpeciesImage";
 import { SPECIES_INFO } from "@/data/speciesInfo";
@@ -106,14 +107,13 @@ export default function HomeRareAlert({ news }: { news: RareAlertNews }) {
                 </div>
               )}
 
-              <Link
-                href="/capture"
+              <CaptureLink
                 onClick={() => setOpen(false)}
                 className="w-full flex items-center justify-center gap-2 bg-forest-600 text-white font-bold rounded-xl py-3 btn3d"
               >
                 <LuCamera size={18} />
                 さがしに行く
-              </Link>
+              </CaptureLink>
               <button onClick={() => setOpen(false)} className="w-full text-sm font-semibold text-neutral-500 py-2">
                 とじる
               </button>

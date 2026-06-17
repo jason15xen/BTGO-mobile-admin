@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import CaptureLink from "@/components/CaptureLink";
 import type { IconType } from "react-icons";
 import { FiCamera } from "react-icons/fi";
 import { LuFootprints, LuBird, LuTicket, LuActivity, LuTrophy, LuLayers } from "react-icons/lu";
@@ -305,9 +306,15 @@ function EmptyState({
       </span>
       <p className="text-sm font-semibold text-neutral-700 mt-3">{message}</p>
       <p className="text-xs text-neutral-400 mt-1">{hint}</p>
-      <Link href={href} className="inline-block mt-4 text-sm font-bold text-white bg-forest-600 rounded-xl px-5 py-2.5 btn3d">
-        {action}
-      </Link>
+      {href === "/capture" ? (
+        <CaptureLink className="inline-block mt-4 text-sm font-bold text-white bg-forest-600 rounded-xl px-5 py-2.5 btn3d">
+          {action}
+        </CaptureLink>
+      ) : (
+        <Link href={href} className="inline-block mt-4 text-sm font-bold text-white bg-forest-600 rounded-xl px-5 py-2.5 btn3d">
+          {action}
+        </Link>
+      )}
     </div>
   );
 }

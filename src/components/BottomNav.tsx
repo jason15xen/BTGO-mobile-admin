@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { rememberCaptureReturn } from "@/lib/captureNav";
 import { usePathname, useRouter } from "next/navigation";
 import type { IconType } from "react-icons";
 import { FiHome, FiLayers, FiBookOpen, FiGift, FiCamera } from "react-icons/fi";
@@ -28,7 +29,10 @@ export default function BottomNav() {
       ))}
 
       <button
-        onClick={() => router.push("/capture")}
+        onClick={() => {
+          rememberCaptureReturn(pathname);
+          router.push("/capture");
+        }}
         aria-label="撮影"
         className="-mt-7 w-[58px] h-[58px] rounded-full bg-gradient-to-b from-forest-500 to-forest-700 active:scale-90 orb3d ring-4 ring-white flex items-center justify-center text-white transition-transform"
       >

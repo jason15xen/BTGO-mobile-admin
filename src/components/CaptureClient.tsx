@@ -16,6 +16,7 @@ import PyramidCelebrationDeck, {
 } from "@/components/PyramidCelebrationDeck";
 import SpeciesImage from "@/components/SpeciesImage";
 import { useImmersive } from "@/components/AppShell";
+import { consumeCaptureReturn } from "@/lib/captureNav";
 import { ensureDemoSessionReady, fetchDemoCaptureState } from "@/lib/gameApi";
 import { getDemoStep, setDemoStep } from "@/lib/demoClient";
 import type { IconType } from "react-icons";
@@ -58,6 +59,10 @@ export default function CaptureClient() {
   const [demoMode, setDemoMode] = useState(true);
 
   const setImmersive = useImmersive();
+
+  function exitCapture() {
+    router.push(consumeCaptureReturn("/"));
+  }
 
   const stopCamera = useCallback(() => {
     streamRef.current?.getTracks().forEach((t) => t.stop());
@@ -272,7 +277,7 @@ export default function CaptureClient() {
     return (
       <div className="min-h-full flex flex-col bg-black text-white">
         <header className="flex items-center justify-between px-5 py-3 z-10">
-          <button onClick={() => router.push("/")} aria-label="閉じる">
+          <button onClick={exitCapture} aria-label="閉じる">
             <FiX size={24} />
           </button>
           <span className="font-semibold">いきもの撮影</span>
