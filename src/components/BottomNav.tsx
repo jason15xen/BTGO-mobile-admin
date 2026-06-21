@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import type { IconType } from "react-icons";
-import { FiHome, FiLayers, FiBookOpen, FiGift, FiCamera } from "react-icons/fi";
+import { FiHome, FiLayers, FiBookOpen, FiGift, FiCamera, FiBriefcase } from "react-icons/fi";
 
 const TABS: { href: string; label: string; Icon: IconType }[] = [
   { href: "/", label: "ホーム", Icon: FiHome },
@@ -11,6 +11,10 @@ const TABS: { href: string; label: string; Icon: IconType }[] = [
   { href: "/encyclopedia", label: "図鑑", Icon: FiBookOpen },
   { href: "/rewards", label: "報酬", Icon: FiGift },
 ];
+
+// 求人 (jobs) — a separate 地域活性化 category from いきもの投稿. Links out to the
+// dedicated 求人 Web site built by this system (set NEXT_PUBLIC_JOBS_URL; placeholder until live).
+const JOBS_URL = process.env.NEXT_PUBLIC_JOBS_URL ?? "https://btgo-jobs.example.com";
 
 // /capture visibility is controlled by AppShell's immersive state (hidden only
 // during the camera/analyzing phases), so it's not listed here.
@@ -38,7 +42,28 @@ export default function BottomNav() {
       {TABS.slice(2).map((t) => (
         <TabItem key={t.href} {...t} active={pathname === t.href} />
       ))}
+
+      <JobsItem />
     </nav>
+  );
+}
+
+// Visually distinct from the green nature tabs (gold, filled, briefcase icon, external)
+// so users read it as a different category from いきもの投稿.
+function JobsItem() {
+  return (
+    <a
+      href={JOBS_URL}
+      target="_blank"
+      rel="noopener noreferrer"
+      aria-label="求人（別サイト）"
+      className="flex flex-col items-center gap-0.5 w-16"
+    >
+      <span className="flex items-center justify-center w-11 h-7 rounded-lg bg-gradient-to-b from-gold-400 to-gold-600 text-white ring-1 ring-gold-300 shadow-[0_2px_8px_rgba(217,119,6,0.45)] active:scale-95 transition-transform">
+        <FiBriefcase size={18} />
+      </span>
+      <span className="text-[11px] tracking-tight font-bold text-gold-600">求人</span>
+    </a>
   );
 }
 
