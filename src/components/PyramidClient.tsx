@@ -2,7 +2,8 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { usePathname } from "next/navigation";
-import { LuLightbulb, LuX, LuInfo, LuUtensils } from "react-icons/lu";
+import Link from "next/link";
+import { LuLightbulb, LuX, LuInfo, LuUtensils, LuTrophy } from "react-icons/lu";
 import { slotHintFor } from "@/lib/slotHint";
 import Pyramid from "@/components/Pyramid";
 import PyramidCelebrationDeck, {
@@ -367,6 +368,13 @@ export default function PyramidClient({
             <span className="bg-white/25 text-white text-xs font-bold rounded-full px-2.5 py-1">
               ピラミッド Lv.{level}
             </span>
+            <Link
+              href="/achievements"
+              aria-label="実績（完成したピラミッド）"
+              className="w-9 h-9 rounded-full bg-white/20 active:bg-white/30 flex items-center justify-center text-white"
+            >
+              <LuTrophy size={18} />
+            </Link>
             <button
               onClick={() => setHelp(true)}
               aria-label="ヘルプ"

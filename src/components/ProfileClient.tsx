@@ -157,9 +157,14 @@ export default function ProfileClient({
               );
             })}
           </div>
-          <Link href="/pyramid" className="block text-center text-xs font-semibold text-forest-600 mt-3">
-            ピラミッドを見る →
-          </Link>
+          <div className="flex items-center justify-center gap-4 mt-3">
+            <Link href="/pyramid" className="text-xs font-semibold text-forest-600">
+              ピラミッドを見る →
+            </Link>
+            <Link href="/achievements" className="inline-flex items-center gap-1 text-xs font-semibold text-gold-600">
+              <LuTrophy size={12} /> 実績
+            </Link>
+          </div>
         </Card>
 
         <div className="flex gap-1 rounded-2xl bg-white p-1 ring-1 ring-black/5 shadow-md">

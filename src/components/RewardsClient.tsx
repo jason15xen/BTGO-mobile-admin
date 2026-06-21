@@ -74,13 +74,16 @@ export default function RewardsClient({ stats }: { stats: UserStats }) {
     <div className="min-h-full bg-forest-50">
       <PageHero
         title="報酬"
-        subtitle="B-mileで地域のクーポンと交換"
         gradient="from-forest-500 to-forest-700"
-        right={
-          <div className="text-right text-white">
-            <div className="text-3xl font-extrabold leading-none">{balance.toLocaleString()}</div>
-            <div className="text-xs text-white/80 mt-1">B-mile</div>
-          </div>
+        subtitle={
+          <>
+            {/* 1段目：残高表示 */}
+            <span className="block text-base font-semibold text-white drop-shadow-sm">
+              現在のB-mile <span className="font-extrabold">{balance.toLocaleString()}</span> B-mile
+            </span>
+            {/* 2段目：交換説明 */}
+            <span className="block text-sm text-white/85 mt-1">B-mileで地域のクーポンと交換</span>
+          </>
         }
       />
       <Screen>

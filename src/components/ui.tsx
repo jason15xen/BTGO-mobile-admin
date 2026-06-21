@@ -16,7 +16,7 @@ export function PageHero({
   right,
 }: {
   title: string;
-  subtitle?: string;
+  subtitle?: ReactNode;
   gradient?: string;
   /** Optional scenery photo shown behind the colour wash (e.g. ecosystem background). */
   bgImage?: string;
