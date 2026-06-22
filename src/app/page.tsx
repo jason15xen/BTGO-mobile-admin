@@ -2,6 +2,7 @@ import CaptureLink from "@/components/CaptureLink";
 import { FiCamera } from "react-icons/fi";
 import { LuLeaf } from "react-icons/lu";
 import HomeRareAlert from "@/components/HomeRareAlert";
+import JobsButton from "@/components/JobsButton";
 import UserGreeting from "@/components/UserGreeting";
 import { ProgressBar } from "@/components/ui";
 import { readObservations } from "@/lib/dataStore";
@@ -30,7 +31,7 @@ export default async function HomePage() {
   };
 
   return (
-    <div className="flex flex-col min-h-full px-5 pt-5 pb-5 gap-4">
+    <div className="relative flex flex-col min-h-full px-5 pt-5 pb-5 gap-4">
       <header className="opacity-0-start animate-fadeUp">
         <p className="text-sm text-forest-500">
           <UserGreeting initialName={user.name} />
@@ -79,6 +80,9 @@ export default async function HomePage() {
           <HomeRareAlert news={rareNews} />
         </div>
       </section>
+
+      {/* 求人 — permanent floating entry at the home page's bottom-right (別カテゴリ) */}
+      <JobsButton className="absolute bottom-5 right-5 z-20 animate-fadeIn stagger-5" />
     </div>
   );
 }
