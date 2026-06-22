@@ -27,27 +27,36 @@ export default function BottomNav() {
   if (HIDE_ON.includes(pathname)) return null;
 
   return (
-    <nav className="shrink-0 relative z-10 bg-gradient-to-b from-white to-forest-50/80 border-t border-forest-200/80 h-[68px] flex items-center justify-around px-1 pb-[env(safe-area-inset-bottom)] nav3d">
-      {TABS.slice(0, 2).map((t) => (
-        <TabItem key={t.href} {...t} active={pathname === t.href} />
-      ))}
+    <nav className="shrink-0 relative z-10 bg-gradient-to-b from-white to-forest-50/80 border-t border-forest-200/80 h-[68px] flex items-center px-1 pb-[env(safe-area-inset-bottom)] nav3d">
+      {/* left group */}
+      <div className="flex flex-1 justify-around">
+        {TABS.slice(0, 2).map((t) => (
+          <TabItem key={t.href} {...t} active={pathname === t.href} />
+        ))}
+      </div>
 
+      {/* center well — keeps both side groups equal so the camera sits dead-center */}
+      <div className="w-[58px] shrink-0" aria-hidden />
+
+      {/* right group */}
+      <div className="flex flex-1 justify-around">
+        {TABS.slice(2).map((t) => (
+          <TabItem key={t.href} {...t} active={pathname === t.href} />
+        ))}
+        <JobsItem />
+      </div>
+
+      {/* capture button — absolutely centered, raised above the bar */}
       <button
         onClick={() => {
           rememberCaptureReturn(pathname);
           router.push("/capture");
         }}
         aria-label="撮影"
-        className="-mt-7 w-[58px] h-[58px] rounded-full bg-gradient-to-b from-forest-500 to-forest-700 active:scale-90 orb3d ring-4 ring-white flex items-center justify-center text-white transition-transform"
+        className="absolute left-1/2 -translate-x-1/2 -top-7 w-[58px] h-[58px] rounded-full bg-gradient-to-b from-forest-500 to-forest-700 active:scale-90 orb3d ring-4 ring-white flex items-center justify-center text-white transition-transform"
       >
         <FiCamera size={24} className="shrink-0" aria-hidden />
       </button>
-
-      {TABS.slice(2).map((t) => (
-        <TabItem key={t.href} {...t} active={pathname === t.href} />
-      ))}
-
-      <JobsItem />
     </nav>
   );
 }

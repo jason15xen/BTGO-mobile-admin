@@ -44,35 +44,34 @@ export default function HomeRareAlert({ news }: { news: RareAlertNews }) {
       </button>
 
       {open && (
-        <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-end sm:items-center justify-center modal-backdrop" onClick={() => setOpen(false)}>
-          <div
-            className="w-full max-w-[440px] max-h-[88vh] overflow-y-auto no-scrollbar bg-white rounded-t-3xl sm:rounded-3xl shadow-2xl modal-sheet"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="relative px-5 pt-5 pb-3 border-b border-neutral-100">
+        <div className="fixed inset-0 z-50 modal-backdrop" role="dialog" aria-modal="true">
+          {/* Full-screen takeover (fills the app frame). */}
+          <div className="absolute inset-0 mx-auto w-full max-w-[480px] bg-white flex flex-col animate-fadeIn">
+            {/* hero */}
+            <div className="relative h-60 shrink-0 bg-neutral-100">
+              <SpeciesImage speciesId={news.speciesId} emoji={news.emoji} alt={news.nameJa} className="w-full h-full" rounded="" />
+              <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/10 to-black/25" aria-hidden />
+              <div className="absolute top-4 left-4 flex items-center gap-1.5 text-white drop-shadow">
+                <LuSparkles size={16} className="animate-sparkle" />
+                <span className="text-sm font-bold">レアアラート</span>
+              </div>
               <button
                 onClick={() => setOpen(false)}
-                className="absolute right-4 top-4 w-8 h-8 rounded-full bg-neutral-100 flex items-center justify-center text-neutral-500"
+                className="absolute top-3 right-4 w-9 h-9 rounded-full bg-black/40 text-white flex items-center justify-center active:bg-black/55"
                 aria-label="閉じる"
               >
-                <LuX size={16} />
+                <LuX size={18} />
               </button>
-              <div className="flex items-center gap-2 text-gold-600">
-                <LuSparkles size={18} />
-                <h2 className="text-lg font-bold text-neutral-900">レアアラート</h2>
+              <div className="absolute bottom-4 left-4 right-4 text-white">
+                <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${rarity.chip}`}>レジェンド</span>
+                <h2 className="text-2xl font-extrabold mt-1.5 drop-shadow">{news.nameJa}</h2>
+                <p className="text-xs italic text-white/85">{news.nameSci}</p>
               </div>
-              <p className="text-sm text-neutral-500 mt-1">地域の最新ニュース</p>
             </div>
 
-            <div className="p-5 space-y-4">
-              <div className="flex gap-4">
-                <SpeciesImage speciesId={news.speciesId} emoji={news.emoji} alt={news.nameJa} className="w-24 h-24 shrink-0" rounded="rounded-2xl" />
-                <div className="min-w-0 pt-1">
-                  <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${rarity.chip}`}>レジェンド</span>
-                  <h3 className="text-xl font-bold text-neutral-900 mt-1.5">{news.nameJa}</h3>
-                  <p className="text-xs text-neutral-400 italic mt-0.5">{news.nameSci}</p>
-                </div>
-              </div>
+            {/* scrollable body */}
+            <div className="flex-1 overflow-y-auto no-scrollbar p-5 space-y-4">
+              <p className="text-sm text-neutral-500">地域の最新ニュース</p>
 
               <div className="rounded-2xl bg-gold-50 border border-gold-100 p-4 space-y-2.5 text-sm">
                 <div className="flex items-start gap-2 text-neutral-700">
@@ -106,10 +105,13 @@ export default function HomeRareAlert({ news }: { news: RareAlertNews }) {
                   </div>
                 </div>
               )}
+            </div>
 
+            {/* pinned CTA */}
+            <div className="shrink-0 p-4 border-t border-neutral-100 space-y-2 pb-[max(1rem,env(safe-area-inset-bottom))]">
               <CaptureLink
                 onClick={() => setOpen(false)}
-                className="w-full flex items-center justify-center gap-2 bg-forest-600 text-white font-bold rounded-xl py-3 btn3d"
+                className="w-full flex items-center justify-center gap-2 bg-forest-600 text-white font-bold rounded-xl py-3.5 btn3d"
               >
                 <LuCamera size={18} />
                 さがしに行く
